@@ -710,7 +710,7 @@ const STAFF_DIRECTORY = {
 };
 
 // إيميل النائب الأكاديمي (يستقبل نسخة من كل طلب)
-const VICE_PRINCIPAL_EMAIL = "t.ammar0107@education.qa";
+let VICE_PRINCIPAL_EMAIL = "t.ammar0107@education.qa";
 
 // الصفوف والشعب
 const GRADES = ["السابع", "الثامن", "التاسع"];
@@ -1349,7 +1349,54 @@ try {
 // -------------------------------------------------------
 // 1. منطق التوجيه — أي صفحة تُعرض؟
 // -------------------------------------------------------
+// تحميل الإعدادات المحفوظة
+async function loadSettings() {
+  // أولاً من localStorage (سريع)
+  try {
+    const saved = localStorage.getItem('hz_settings');
+    if (saved) {
+      const s = JSON.parse(saved);
+      if (s.vpEmail) VICE_PRINCIPAL_EMAIL = s.vpEmail;
+      if (s.schoolName) {
+        const el = document.getElementById('setting-school-name');
+        if (el) el.value = s.schoolName;
+      }
+      if (s.vpEmail) {
+        const el = document.getElementById('setting-vp-email');
+        if (el) el.value = s.vpEmail;
+      }
+    }
+  } catch(e) {}
+
+  // ثم من Firestore (للتحديثات الأحدث)
+  if (db) {
+    try {
+      const snap = await db.collection('settings').doc('general').get();
+      if (snap.exists) {
+        const s = snap.data();
+        if (s.vpEmail) {
+          VICE_PRINCIPAL_EMAIL = s.vpEmail;
+          const el = document.getElementById('setting-vp-email');
+          if (el) el.value = s.vpEmail;
+        }
+        if (s.schoolName) {
+          const el = document.getElementById('setting-school-name');
+          if (el) el.value = s.schoolName;
+        }
+        if (s.confirmMsg) {
+          const el = document.getElementById('setting-confirm-msg');
+          if (el) el.value = s.confirmMsg;
+        }
+        // حفظ في localStorage للمرة القادمة
+        localStorage.setItem('hz_settings', JSON.stringify(s));
+      }
+    } catch(e) { console.warn('تحميل الإعدادات:', e); }
+  }
+}
+
 function initApp() {
+  // تحميل الإعدادات المحفوظة
+  loadSettings();
   buildFormSelects();
 
   // تحقق من جلسة محفوظة في sessionStorage
@@ -2586,8 +2633,37 @@ function exportExcel() {
 // -------------------------------------------------------
 // 14. الإعدادات وبيانات الاختبار
 // -------------------------------------------------------
-function saveSettings() {
-  showToast('💾 تم حفظ الإعدادات', 'success');
+async function saveSettings() {
+  const schoolName = document.getElementById('setting-school-name').value.trim();
+  const vpEmail    = document.getElementById('setting-vp-email').value.trim().toLowerCase();
+  const confirmMsg = document.getElementById('setting-confirm-msg')?.value.trim() || '';
+
+  if (!vpEmail) {
+    showToast('يرجى إدخال إيميل النائب الأكاديمي', 'error');
+    return;
+  }
+
+  // تحديث المتغير في الذاكرة فوراً
+  VICE_PRINCIPAL_EMAIL = vpEmail;
+
+  // حفظ في Firestore
+  if (db) {
+    try {
+      await db.collection('settings').doc('general').set({
+        schoolName,
+        vpEmail,
+        confirmMsg,
+        updatedAt: new Date(),
+      });
+    } catch(e) {
+      console.warn('خطأ في حفظ الإعدادات:', e);
+    }
+  }
+
+  // حفظ في localStorage للاستمرارية
+  localStorage.setItem('hz_settings', JSON.stringify({ schoolName, vpEmail, confirmMsg }));
+
+  showToast('✅ تم حفظ الإعدادات بنجاح', 'success');
 }
 
 function addDemoData() {
