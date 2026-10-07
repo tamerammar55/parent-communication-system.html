@@ -1,0 +1,3311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام تواصل أولياء الأمور — مدرسة حمزة بن عبد المطلب</title>
+
+<!-- =====================================================
+     الخطوط والمكتبات الخارجية
+     ===================================================== -->
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<!-- SheetJS لتصدير Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- Chart.js للرسوم البيانية -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* =====================================================
+   المتغيرات والإعدادات العامة
+   ===================================================== */
+:root {
+  --primary: #1a56db;
+  --primary-light: #e8f0fe;
+  --primary-dark: #1240a6;
+  --success: #0e9f6e;
+  --success-light: #e3f9ef;
+  --warning: #c27803;
+  --warning-light: #fdf3c0;
+  --danger: #e02424;
+  --danger-light: #fde8e8;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --white: #ffffff;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --font: 'Tajawal', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: var(--gray-50);
+  color: var(--gray-800);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* =====================================================
+   التخطيط العام — الشريط الجانبي + المحتوى
+   ===================================================== */
+#app { display: flex; min-height: 100vh; }
+
+/* الشريط الجانبي */
+#sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: var(--gray-900);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; right: 0;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-logo {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-logo h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.4;
+}
+
+.sidebar-logo p {
+  font-size: 12px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+.sidebar-logo .school-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 6px;
+}
+
+.sidebar-nav { padding: 12px 0; flex: 1; }
+
+.nav-section-title {
+  font-size: 10px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 20px 4px;
+  font-weight: 500;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  color: var(--gray-400);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  margin: 1px 8px;
+  transition: all 0.15s ease;
+  font-size: 14px;
+}
+
+.nav-item:hover { background: rgba(255,255,255,0.06); color: var(--white); }
+
+.nav-item.active {
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 500;
+}
+
+.nav-item .nav-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-item .nav-badge {
+  margin-right: auto;
+  background: var(--danger);
+  color: white;
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: white; flex-shrink: 0;
+}
+
+.user-name { font-size: 13px; font-weight: 500; color: var(--white); }
+.user-role { font-size: 11px; color: var(--gray-500); }
+
+/* المحتوى الرئيسي */
+#main-content {
+  flex: 1;
+  margin-right: 260px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* الرأسية العلوية */
+#topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-title { font-size: 18px; font-weight: 700; color: var(--gray-900); }
+.topbar-sub { font-size: 12px; color: var(--gray-500); margin-top: 1px; }
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+
+/* محتوى الصفحات */
+.page { display: none; padding: 28px; flex: 1; }
+.page.active { display: block; }
+
+/* =====================================================
+   المكونات العامة
+   ===================================================== */
+.card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* أزرار */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); color: white; }
+.btn-success:hover { filter: brightness(0.9); }
+.btn-outline {
+  background: transparent;
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+}
+.btn-outline:hover { background: var(--gray-50); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-lg { padding: 13px 28px; font-size: 16px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* حقول الإدخال */
+.form-group { margin-bottom: 18px; }
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-700);
+  margin-bottom: 6px;
+}
+
+.form-label .required { color: var(--danger); margin-right: 2px; }
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--gray-800);
+  background: var(--white);
+  transition: all 0.15s;
+  outline: none;
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26,86,219,0.12);
+}
+
+.form-control.is-invalid { border-color: var(--danger); }
+.form-error { font-size: 12px; color: var(--danger); margin-top: 4px; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* الشارات / الحالات */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-pending { background: var(--warning-light); color: var(--warning); }
+.badge-done { background: var(--success-light); color: var(--success); }
+.badge-new { background: var(--primary-light); color: var(--primary); }
+
+/* KPI بطاقات الإحصاء */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  box-shadow: var(--shadow);
+}
+
+.kpi-icon {
+  width: 46px; height: 46px;
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.kpi-icon.blue { background: var(--primary-light); }
+.kpi-icon.green { background: var(--success-light); }
+.kpi-icon.amber { background: var(--warning-light); }
+.kpi-icon.red { background: var(--danger-light); }
+
+.kpi-value { font-size: 26px; font-weight: 700; color: var(--gray-900); line-height: 1.1; }
+.kpi-label { font-size: 12px; color: var(--gray-500); margin-top: 3px; }
+.kpi-change { font-size: 11px; color: var(--success); font-weight: 500; }
+
+/* الجداول */
+.table-wrapper { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--gray-200); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+thead { background: var(--gray-50); }
+
+thead th {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: var(--gray-600);
+  font-size: 12px;
+  text-align: right;
+  border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
+}
+
+tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.1s; }
+tbody tr:hover { background: var(--gray-50); }
+tbody tr:last-child { border-bottom: none; }
+
+tbody td { padding: 13px 16px; color: var(--gray-700); vertical-align: middle; }
+
+/* الفلاتر */
+.filters-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* نافذة التفاصيل (Modal) */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.modal-title { font-size: 16px; font-weight: 700; }
+
+.modal-close {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-600);
+}
+
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-200); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* بطاقة التفاصيل */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.detail-item {}
+.detail-label { font-size: 11px; color: var(--gray-500); font-weight: 500; text-transform: uppercase; margin-bottom: 3px; }
+.detail-value { font-size: 14px; font-weight: 500; color: var(--gray-800); }
+
+/* رسالة التأكيد */
+.success-screen {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.success-icon {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--success-light);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 32px;
+}
+
+.success-title { font-size: 22px; font-weight: 700; color: var(--gray-900); margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--gray-500); margin-bottom: 6px; }
+
+.tracking-number {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 18px;
+  font-weight: 700;
+  padding: 8px 24px;
+  border-radius: 30px;
+  letter-spacing: 0.05em;
+  margin: 10px 0 20px;
+  direction: ltr;
+}
+
+/* صفحة تسجيل الدخول */
+#login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gray-900) 0%, #1a2e5a 100%);
+  padding: 20px;
+}
+
+.login-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-logo h1 { font-size: 20px; font-weight: 700; color: var(--gray-900); }
+.login-logo p { font-size: 13px; color: var(--gray-500); margin-top: 4px; }
+
+/* نموذج ولي الأمر — صفحة عامة */
+#parent-form-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0f4ff 0%, #fafafa 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.parent-form-card {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 600px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.parent-form-header {
+  background: linear-gradient(135deg, var(--primary) 0%, #2563eb 100%);
+  padding: 28px 32px;
+  color: white;
+}
+
+.parent-form-header h1 { font-size: 20px; font-weight: 700; }
+.parent-form-header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+.parent-form-body { padding: 32px; }
+
+/* محمول */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--gray-700);
+}
+
+/* نص توضيحي فارغ */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--gray-400);
+}
+
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* تعديل عرض الصفحة للموبايل */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(260px);
+  }
+
+  #sidebar.open {
+    transform: translateX(0);
+  }
+
+  #main-content { margin-right: 0; }
+
+  .hamburger { display: block; }
+
+  .form-row { grid-template-columns: 1fr; }
+
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+
+  .detail-grid { grid-template-columns: 1fr; }
+
+  .page { padding: 16px; }
+
+  .topbar-title { font-size: 15px; }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+/* الإشعارات التلقائية */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  background: var(--gray-900);
+  color: white;
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toastIn 0.3s ease;
+  max-width: 320px;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+
+/* حالة التحميل */
+.loading-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* تنسيق checkbox */
+.check-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.check-toggle input[type="checkbox"] {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+
+/* div الإحصائيات */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+@media (max-width: 600px) {
+  .chart-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- =====================================================
+     ⚙️ إعداد Firebase — عدّل هذه القيم بمشروعك
+     ===================================================== -->
+<script>
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyB-TfRU1pT48SYz0tdUvNpTj6V6fDTgLyk",
+  authDomain:        "hamza-school-c54a1.firebaseapp.com",
+  projectId:         "hamza-school-c54a1",
+  storageBucket:     "hamza-school-c54a1.firebasestorage.app",
+  messagingSenderId: "515723737390",
+  appId:             "1:515723737390:web:76b1cc9aef8440f4c8e2bf"
+};
+
+// رابط Power Automate للإشعارات البريدية
+const APPS_SCRIPT_URL = "https://default2dcae639d4a4445482c7592ab66fc7.bd.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/22/workflows/599c40d1e4e9405d8966e71444c584f6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=GqgShwHx7Has5E3uSMTvuoI0rcv_W6Tf1SsJgwyLjh0";
+
+// بيانات الجهات — خصّصها حسب كادر مدرستك
+const STAFF_DIRECTORY = {
+  "معلم الصف": [
+    { name: "أ. سعيد المنصوري", email: "said@school.edu.qa", subject: "الصف السابع" },
+    { name: "أ. خالد الزهراني", email: "khaled@school.edu.qa", subject: "الصف الثامن" },
+    { name: "أ. محمد العنزي",   email: "mohammed@school.edu.qa", subject: "الصف التاسع" },
+  ],
+  "مشرف المادة": [
+    { name: "أ. فيصل البلوشي",  email: "faisal@school.edu.qa",  subject: "الرياضيات" },
+    { name: "أ. يوسف الكواري",  email: "yousef@school.edu.qa",  subject: "اللغة العربية" },
+    { name: "أ. أحمد النعيمي",  email: "ahmed@school.edu.qa",   subject: "العلوم" },
+  ],
+  "الإخصائي الاجتماعي": [
+    { name: "أ. عمر المهندي",   email: "omar@school.edu.qa",    subject: "إخصائي اجتماعي" },
+  ],
+  "النائب الأكاديمي": [
+    { name: "تامر عمار",        email: "t.ammar0107@education.qa",   subject: "النائب الأكاديمي" },
+  ],
+  "الإدارة المالية": [
+    { name: "أ. سلطان الدوسري", email: "sultan@school.edu.qa",  subject: "الإدارة المالية" },
+  ],
+  "المدير": [
+    { name: "ناصر المعيني",     email: "nasser@school.edu.qa",  subject: "مدير المدرسة" },
+  ]
+};
+
+// إيميل النائب الأكاديمي (يستقبل نسخة من كل طلب)
+const VICE_PRINCIPAL_EMAIL = "t.ammar0107@education.qa";
+
+// الصفوف والشعب
+const GRADES = ["السابع", "الثامن", "التاسع"];
+const SECTIONS = ["أ", "ب", "ج", "د", "هـ", "و", "ز"];
+
+// طرق التواصل
+const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إلكتروني", "مقابلة رسمية"];
+</script>
+
+<!-- =====================================================
+     صفحة تسجيل الدخول
+     ===================================================== -->
+<div id="login-page" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">
+      <div style="font-size:36px;margin-bottom:10px">🏫</div>
+      <h1>نظام تواصل أولياء الأمور</h1>
+      <p>مدرسة حمزة بن عبد المطلب للبنين</p>
+    </div>
+    <div class="form-group">
+      <label class="form-label">البريد الإلكتروني</label>
+      <input type="email" id="login-email" class="form-control" placeholder="admin@school.edu.qa" dir="ltr">
+    </div>
+    <div class="form-group">
+      <label class="form-label">كلمة المرور</label>
+      <input type="password" id="login-password" class="form-control" placeholder="••••••••" dir="ltr">
+    </div>
+    <div id="login-error" class="form-error" style="margin-bottom:12px;display:none"></div>
+    <button class="btn btn-primary btn-lg" style="width:100%" onclick="doLogin()">
+      <span id="login-btn-text">تسجيل الدخول</span>
+    </button>
+    <div style="text-align:center;margin-top:16px">
+      <a href="#" onclick="showParentForm()" style="font-size:13px;color:var(--primary)">
+        💬 أنت ولي أمر؟ اضغط هنا لتقديم طلب
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     نموذج ولي الأمر (صفحة عامة)
+     ===================================================== -->
+<div id="parent-form-page" style="display:none">
+  <div class="parent-form-card">
+    <!-- رأسية النموذج -->
+    <div class="parent-form-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:32px">📋</div>
+        <div>
+          <h1>طلب تواصل مع المدرسة</h1>
+          <p>مدرسة حمزة بن عبد المطلب — وزارة التعليم والتعليم العالي</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- جسم النموذج -->
+    <div class="parent-form-body" id="parent-form-body">
+      <!-- بيانات ولي الأمر -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم ولي الأمر <span class="required">*</span></label>
+          <input type="text" id="pf-parent-name" class="form-control" placeholder="الاسم الكامل">
+          <div class="form-error" id="err-parent-name"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">رقم الهاتف / واتساب <span class="required">*</span></label>
+          <input type="tel" id="pf-phone" class="form-control" placeholder="0055xxxxxxx" dir="ltr">
+          <div class="form-error" id="err-phone"></div>
+        </div>
+      </div>
+
+      <!-- بيانات الطالب -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">اسم الطالب <span class="required">*</span></label>
+          <input type="text" id="pf-student-name" class="form-control" placeholder="الاسم الكامل">
+          <div class="form-error" id="err-student-name"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">الصف والشعبة <span class="required">*</span></label>
+          <select id="pf-grade" class="form-control" onchange="onGradeChange()">
+            <option value="">اختر الصف والشعبة</option>
+          </select>
+          <div class="form-error" id="err-grade"></div>
+        </div>
+      </div>
+
+      <!-- الجهة المطلوبة -->
+      <div class="form-group">
+        <label class="form-label">الجهة المطلوبة للتواصل <span class="required">*</span></label>
+        <select id="pf-dept" class="form-control" onchange="onDeptChange()">
+          <option value="">اختر الجهة</option>
+        </select>
+        <div class="form-error" id="err-dept"></div>
+      </div>
+
+      <!-- قائمة الموظفين — تتغير حسب الجهة والصف -->
+      <div class="form-group" id="staff-selector-group" style="display:none">
+        <label class="form-label" id="staff-label">الموظف المعني <span class="required">*</span></label>
+        <select id="pf-staff" class="form-control">
+          <option value="">اختر</option>
+        </select>
+        <div class="form-error" id="err-staff"></div>
+      </div>
+
+      <!-- الموضوع -->
+      <div class="form-group">
+        <label class="form-label">موضوع الاستفسار (اختياري)</label>
+        <textarea id="pf-subject" class="form-control" rows="3"
+          placeholder="أكتب موضوع طلبك أو سؤالك باختصار..."></textarea>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+        <button class="btn btn-primary btn-lg" onclick="submitParentForm()" id="pf-submit-btn">
+          <span id="pf-submit-text">📨 إرسال الطلب</span>
+        </button>
+        <a href="#" onclick="showLogin()" style="font-size:13px;color:var(--gray-400)">
+          تسجيل دخول الكادر
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     لوحة المعلم / الموظف
+     ===================================================== -->
+<div id="teacher-app" style="display:none">
+  <div style="min-height:100vh;background:var(--gray-50)">
+
+    <!-- رأسية المعلم -->
+    <div style="background:var(--white);border-bottom:1px solid var(--gray-200);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:16px;font-weight:700" id="teacher-avatar">م</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--gray-900)" id="teacher-name">جاري التحميل...</div>
+          <div style="font-size:12px;color:var(--gray-500)" id="teacher-role">معلم</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:13px;color:var(--gray-500)">🏫 مدرسة حمزة بن عبد المطلب</div>
+        <button class="btn btn-outline btn-sm" onclick="doLogout()">🚪 خروج</button>
+      </div>
+    </div>
+
+    <!-- محتوى لوحة المعلم -->
+    <div style="padding:24px;max-width:1000px;margin:0 auto">
+
+      <!-- إحصائيات المعلم -->
+      <div class="kpi-grid" style="margin-bottom:24px">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">📋</div>
+          <div>
+            <div class="kpi-value" id="t-kpi-total">0</div>
+            <div class="kpi-label">إجمالي طلباتي</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon amber">⏳</div>
+          <div>
+            <div class="kpi-value" id="t-kpi-pending">0</div>
+            <div class="kpi-label">في الانتظار</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">✅</div>
+          <div>
+            <div class="kpi-value" id="t-kpi-done">0</div>
+            <div class="kpi-label">تم التواصل</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- جدول طلبات المعلم -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📬 طلبات التواصل الواردة إليّ</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" style="width:auto" id="t-filter-status" onchange="loadTeacherRequests()">
+              <option value="">كل الحالات</option>
+              <option value="pending">في الانتظار</option>
+              <option value="done">تم التواصل</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>رقم الطلب</th>
+                <th>ولي الأمر</th>
+                <th>الطالب</th>
+                <th>الصف</th>
+                <th>الموضوع</th>
+                <th>التاريخ</th>
+                <th>الحالة</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="teacher-requests-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400)">
+                جاري تحميل الطلبات...
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     نظام إدارة الكادر (لوحة التحكم)
+     ===================================================== -->
+<div id="admin-app" style="display:none">
+  <div id="app">
+    <!-- الشريط الجانبي -->
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <h2>🏫 نظام التواصل</h2>
+        <p>مدرسة حمزة بن عبد المطلب</p>
+        <span class="school-badge">وزارة التعليم والتعليم العالي</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">القائمة الرئيسية</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+          <span class="nav-icon">📊</span>
+          <span>لوحة المؤشرات</span>
+        </div>
+        <div class="nav-item" onclick="showPage('requests')" data-page="requests">
+          <span class="nav-icon">📋</span>
+          <span>الطلبات الواردة</span>
+          <span class="nav-badge" id="pending-badge">0</span>
+        </div>
+        <div class="nav-item" onclick="showPage('analytics')" data-page="analytics">
+          <span class="nav-icon">📈</span>
+          <span>الإحصائيات والتقارير</span>
+        </div>
+        <div class="nav-section-title" style="margin-top:12px">الإعدادات</div>
+        <div class="nav-item" onclick="showPage('staff')" data-page="staff">
+          <span class="nav-icon">👥</span>
+          <span>إدارة الكادر</span>
+        </div>
+        <div class="nav-item" onclick="showPage('settings')" data-page="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>إعدادات النظام</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="user-avatar-text">ت</div>
+          <div>
+            <div class="user-name" id="sidebar-user-name">جاري التحميل...</div>
+            <div class="user-role">النائب الأكاديمي</div>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm" style="width:100%;margin-top:10px" onclick="doLogout()">
+          🚪 تسجيل الخروج
+        </button>
+      </div>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <div id="main-content">
+      <!-- الرأسية -->
+      <div id="topbar">
+        <div>
+          <div class="topbar-title" id="page-title">لوحة المؤشرات</div>
+          <div class="topbar-sub" id="page-subtitle">نظرة عامة على طلبات التواصل</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="hamburger" onclick="toggleSidebar()">☰</button>
+          <button class="btn btn-outline btn-sm" onclick="exportExcel()">
+            📥 تصدير Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- ======================== صفحة: لوحة المؤشرات ======================== -->
+      <div class="page active" id="page-dashboard">
+        <!-- KPI Cards -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon blue">📋</div>
+            <div>
+              <div class="kpi-value" id="kpi-total">0</div>
+              <div class="kpi-label">إجمالي الطلبات</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon green">✅</div>
+            <div>
+              <div class="kpi-value" id="kpi-done">0</div>
+              <div class="kpi-label">تم التواصل</div>
+              <div class="kpi-change" id="kpi-done-pct">—%</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon amber">⏳</div>
+            <div>
+              <div class="kpi-value" id="kpi-pending">0</div>
+              <div class="kpi-label">في الانتظار</div>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon red">⚡</div>
+            <div>
+              <div class="kpi-value" id="kpi-avg-time">—</div>
+              <div class="kpi-label">متوسط وقت الاستجابة</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- آخر الطلبات -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📬 آخر الطلبات الواردة</div>
+            <button class="btn btn-outline btn-sm" onclick="showPage('requests')">عرض الكل</button>
+          </div>
+          <div class="table-wrapper">
+            <table id="recent-table">
+              <thead>
+                <tr>
+                  <th>رقم الطلب</th>
+                  <th>ولي الأمر</th>
+                  <th>الطالب</th>
+                  <th>الصف</th>
+                  <th>الجهة المعنية</th>
+                  <th>التاريخ</th>
+                  <th>الحالة</th>
+                  <th>إجراء</th>
+                </tr>
+              </thead>
+              <tbody id="recent-tbody">
+                <tr><td colspan="8" class="empty-state">
+                  <div class="empty-icon">📭</div>
+                  <p>لا توجد طلبات حتى الآن</p>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================== صفحة: الطلبات ======================== -->
+      <div class="page" id="page-requests">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 جميع الطلبات الواردة</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-success btn-sm" onclick="exportExcel()">📥 تصدير Excel</button>
+              <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent"
+                onclick="deleteSelectedRequests()" id="delete-selected-btn" style="display:none">
+                🗑️ حذف المحدد
+              </button>
+              <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent"
+                onclick="deleteAllRequests()">
+                🗑️ حذف الكل
+              </button>
+            </div>
+          </div>
+
+          <!-- شريط الفلاتر -->
+          <div class="filters-bar">
+            <select class="form-control" style="width:auto;min-width:130px" id="filter-status" onchange="applyFilters()">
+              <option value="">كل الحالات</option>
+              <option value="pending">في الانتظار</option>
+              <option value="done">تم التواصل</option>
+            </select>
+            <select class="form-control" style="width:auto;min-width:130px" id="filter-dept" onchange="applyFilters()">
+              <option value="">كل الجهات</option>
+            </select>
+            <select class="form-control" style="width:auto;min-width:110px" id="filter-grade" onchange="applyFilters()">
+              <option value="">كل الصفوف</option>
+            </select>
+            <input type="text" class="form-control" style="width:180px" id="filter-search"
+              placeholder="بحث بالاسم..." oninput="applyFilters()">
+            <button class="btn btn-outline btn-sm" onclick="clearFilters()">إعادة ضبط</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" id="select-all-reqs" onchange="toggleSelectAll(this)"></th>
+                  <th>رقم الطلب</th>
+                  <th>ولي الأمر</th>
+                  <th>الطالب</th>
+                  <th>الصف / الشعبة</th>
+                  <th>الجهة المعنية</th>
+                  <th>الموظف</th>
+                  <th>تاريخ الطلب</th>
+                  <th>الحالة</th>
+                  <th>تفاصيل</th>
+                </tr>
+              </thead>
+              <tbody id="requests-tbody">
+                <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--gray-400)">
+                  جاري تحميل البيانات...
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================== صفحة: الإحصائيات ======================== -->
+      <div class="page" id="page-analytics">
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📊 الطلبات حسب الجهة</div>
+            </div>
+            <canvas id="chart-dept" height="220"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📈 الطلبات خلال 30 يوماً</div>
+            </div>
+            <canvas id="chart-timeline" height="220"></canvas>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🏫 الطلبات حسب الصف</div>
+            </div>
+            <canvas id="chart-grade" height="220"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">✅ نسبة الإنجاز</div>
+            </div>
+            <canvas id="chart-completion" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================== صفحة: إدارة الكادر ======================== -->
+      <div class="page" id="page-staff">
+
+        <!-- أزرار الإضافة -->
+        <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary" onclick="openDeptModal()">➕ إضافة قسم</button>
+          <button class="btn btn-success" onclick="openStaffModal()">👤 إضافة موظف</button>
+            <button class="btn btn-outline" onclick="document.getElementById('import-file-input').click()" style="border-color:#7c3aed;color:#7c3aed">
+            📥 استيراد البيانات من Excel
+          </button>
+          <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(this)">
+          <button class="btn btn-primary" onclick="document.getElementById('import-accounts-input').click()" style="background:#7c3aed;border-color:#7c3aed">
+            👤 إنشاء حسابات الدخول من Excel
+          </button>
+          <input type="file" id="import-accounts-input" accept=".xlsx,.xls" style="display:none" onchange="importAccountsFromExcel(this)">
+          <button class="btn btn-outline btn-sm" onclick="reimportFresh()" style="color:#d97706;border-color:#d97706">
+            🔄 إعادة الاستيراد (حذف القديم أولاً)
+          </button>
+          <button class="btn btn-outline btn-sm" onclick="deleteAllStaff()" style="color:var(--danger);border-color:var(--danger)">
+            🗑️ حذف كل الكادر
+          </button>
+          <span id="import-status" style="font-size:13px;color:var(--gray-500)"></span>
+        </div>
+
+        <!-- قائمة الأقسام والموظفين -->
+        <div id="staff-dept-list"></div>
+      </div>
+
+      <!-- ======================== صفحة: الإعدادات ======================== -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚙️ إعدادات النظام</div>
+          </div>
+          <div style="padding:16px 0">
+            <div class="form-group">
+              <label class="form-label">اسم المدرسة</label>
+              <input type="text" class="form-control" value="مدرسة حمزة بن عبد المطلب للبنين" id="setting-school-name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">إيميل النائب الأكاديمي (يستقبل نسخة من كل طلب)</label>
+              <input type="email" class="form-control" value="t.ammar0107@education.qa" dir="ltr" id="setting-vp-email">
+            </div>
+            <div class="form-group">
+              <label class="form-label">رسالة التأكيد لولي الأمر</label>
+              <textarea class="form-control" rows="3" id="setting-confirm-msg">
+تم استلام طلبكم بنجاح، وسيتم التواصل معكم في أقرب وقت ممكن. شكراً لتواصلكم مع مدرسة حمزة بن عبد المطلب.
+              </textarea>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+          </div>
+        </div>
+
+        <!-- قسم بيانات تجريبية -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🧪 بيانات اختبار</div>
+          </div>
+          <p style="font-size:13px;color:var(--gray-500);margin-bottom:14px">
+            أضف بيانات تجريبية لاختبار النظام قبل الإطلاق الفعلي.
+          </p>
+          <button class="btn btn-outline btn-sm" onclick="addDemoData()">إضافة بيانات تجريبية</button>
+          <button class="btn btn-outline btn-sm" onclick="clearAllData()" style="margin-right:8px;color:var(--danger);border-color:var(--danger)">
+            🗑️ حذف كل البيانات
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     نافذة تفاصيل الطلب / تسجيل التواصل
+     ===================================================== -->
+<div class="modal-overlay" id="request-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">📋 تفاصيل الطلب</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body-content">
+      <!-- تُملأ ديناميكياً -->
+    </div>
+    <div class="modal-footer" id="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">إغلاق</button>
+      <button class="btn btn-success" onclick="saveContactRecord()" id="save-contact-btn">
+        ✅ حفظ سجل التواصل
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     نافذة إضافة / تعديل قسم
+     ===================================================== -->
+<div class="modal-overlay" id="dept-modal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" id="dept-modal-title">➕ إضافة قسم جديد</div>
+      <button class="modal-close" onclick="closeDeptModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dept-edit-id">
+      <div class="form-group">
+        <label class="form-label">اسم القسم <span class="required">*</span></label>
+        <input type="text" id="dept-name-input" class="form-control" placeholder="مثال: الإخصائي الاجتماعي">
+        <div class="form-error" id="dept-name-err"></div>
+      </div>
+      <div class="form-group">
+        <label class="check-toggle" style="cursor:pointer">
+          <input type="checkbox" id="dept-is-admin">
+          <span style="font-size:14px">قسم إداري (لا يحتاج تحديد صف)</span>
+        </label>
+        <div style="font-size:12px;color:var(--gray-400);margin-top:4px">
+          فعّل هذا لأقسام مثل: النائب الأكاديمي، الإخصائي، المدير، الإدارة المالية
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDeptModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveDept()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     نافذة إضافة / تعديل موظف
+     ===================================================== -->
+<div class="modal-overlay" id="staff-modal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title" id="staff-modal-title">👤 إضافة موظف جديد</div>
+      <button class="modal-close" onclick="closeStaffModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="staff-edit-id">
+      <div class="form-group">
+        <label class="form-label">القسم <span class="required">*</span></label>
+        <select id="staff-dept-select" class="form-control">
+          <option value="">اختر القسم</option>
+        </select>
+        <div class="form-error" id="staff-dept-err"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+        <input type="text" id="staff-name-input" class="form-control" placeholder="أ. محمد العنزي">
+        <div class="form-error" id="staff-name-err"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">البريد الإلكتروني <span class="required">*</span></label>
+        <input type="email" id="staff-email-input" class="form-control" placeholder="m.alanazi@school.edu.qa" dir="ltr">
+        <div class="form-error" id="staff-email-err"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">التخصص / المسمى الوظيفي</label>
+        <input type="text" id="staff-subject-input" class="form-control" placeholder="معلم رياضيات / الصف السابع">
+      </div>
+      <div class="form-group">
+        <label class="form-label">كلمة المرور <span class="required">*</span></label>
+        <input type="text" id="staff-password-input" class="form-control" placeholder="مثال: 1234" dir="ltr">
+        <div class="form-error" id="staff-password-err"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeStaffModal()">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveStaff()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- =====================================================
+     JavaScript — المنطق الكامل للتطبيق
+     ===================================================== -->
+<script>
+// -------------------------------------------------------
+// 0. تهيئة Firebase وEmailJS
+// -------------------------------------------------------
+let db, auth;
+let currentUser = null;
+let allRequests = [];    // كل الطلبات من Firestore
+let filteredReqs = [];   // الطلبات بعد الفلترة
+let activeModalId = null;
+let chartInstances = {};
+
+// تهيئة Firebase — Firestore فقط بدون Auth
+try {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db   = firebase.firestore();
+  auth = null; // لا نستخدم Firebase Auth
+  console.log("✅ Firebase Firestore متصل");
+} catch(e) {
+  console.error("خطأ في Firebase:", e);
+  db = null;
+}
+
+// -------------------------------------------------------
+// 1. منطق التوجيه — أي صفحة تُعرض؟
+// -------------------------------------------------------
+function initApp() {
+  buildFormSelects();
+
+  // تحقق من جلسة محفوظة في sessionStorage
+  const savedSession = sessionStorage.getItem('hz_user');
+  if (savedSession) {
+    try {
+      const user = JSON.parse(savedSession);
+      currentUser = user;
+      window._currentStaff = user;
+      if (user.isSuperAdmin) {
+        showAdminApp(user);
+      } else {
+        showTeacherApp(user, user);
+      }
+      return;
+    } catch(e) {
+      sessionStorage.removeItem('hz_user');
+    }
+  }
+
+  showParentForm();
+}
+
+function showParentForm() {
+  document.getElementById('login-page').style.display      = 'none';
+  document.getElementById('parent-form-page').style.display = 'flex';
+  document.getElementById('admin-app').style.display       = 'none';
+}
+
+function showLogin() {
+  document.getElementById('login-page').style.display      = 'flex';
+  document.getElementById('parent-form-page').style.display = 'none';
+  document.getElementById('admin-app').style.display       = 'none';
+}
+
+// الإيميلات التي لها صلاحية الإدارة الكاملة
+const SUPER_ADMIN_EMAILS = [
+  't.ammar0107@education.qa',
+  'n.al-naimi2808@education.qa',
+  'a.saad2505@education.qa',
+  't.ammar0107@education.qa',
+];
+
+// هذه الدالة لم تعد مستخدمة — الدخول يتم عبر doLogin مباشرة
+async function detectUserRoleAndShow(user) {
+  showAdminApp(user);
+}
+
+function showAdminApp(user) {
+  document.getElementById('login-page').style.display       = 'none';
+  document.getElementById('parent-form-page').style.display = 'none';
+  document.getElementById('teacher-app').style.display      = 'none';
+  document.getElementById('admin-app').style.display        = 'block';
+
+  const name = user.name || user.displayName || user.email?.split('@')[0] || 'مدير';
+  document.getElementById('sidebar-user-name').textContent  = name;
+  document.getElementById('user-avatar-text').textContent   = name.charAt(0);
+
+  loadRequests();
+  buildFilterSelects();
+  loadStaffDirectory();
+}
+
+function showTeacherApp(user, staffDoc) {
+  document.getElementById('login-page').style.display       = 'none';
+  document.getElementById('parent-form-page').style.display = 'none';
+  document.getElementById('admin-app').style.display        = 'none';
+  document.getElementById('teacher-app').style.display      = 'block';
+
+  const name = user.displayName || staffDoc.name || user.email.split('@')[0];
+  document.getElementById('teacher-name').textContent  = name;
+  document.getElementById('teacher-role').textContent  = staffDoc.subject || 'موظف';
+  document.getElementById('teacher-avatar').textContent = name.charAt(0);
+
+  // حفظ بيانات الموظف الحالي
+  window._currentStaff = staffDoc;
+
+  loadTeacherRequests();
+}
+
+// تحميل طلبات المعلم الخاص
+function loadTeacherRequests() {
+  if (!db || !window._currentStaff) return;
+
+  const statusFilter = document.getElementById('t-filter-status')?.value || '';
+  const staffName    = window._currentStaff.name;
+  const staffEmail   = window._currentStaff.email;
+
+  let query = db.collection('requests')
+    .where('staffEmail', '==', staffEmail)
+    .orderBy('createdAt', 'desc');
+
+  query.onSnapshot(snapshot => {
+    let reqs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // فلتر الحالة
+    if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
+
+    // KPIs
+    const total   = reqs.length;
+    const pending = reqs.filter(r => r.status === 'pending').length;
+    const done    = reqs.filter(r => r.status === 'done').length;
+    document.getElementById('t-kpi-total').textContent   = total;
+    document.getElementById('t-kpi-pending').textContent = pending;
+    document.getElementById('t-kpi-done').textContent    = done;
+
+    // الجدول
+    const tbody = document.getElementById('teacher-requests-tbody');
+    if (reqs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8">
+        <div class="empty-state"><div class="empty-icon">📭</div>
+        <p>لا توجد طلبات واردة إليك حتى الآن</p></div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = reqs.map(r => {
+      const badge = r.status === 'done'
+        ? `<span class="badge badge-done">✅ تم</span>`
+        : `<span class="badge badge-pending">⏳ انتظار</span>`;
+      return `
+        <tr>
+          <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber||'—'}</code></td>
+          <td>
+            <strong>${r.parentName}</strong><br>
+            <small style="color:var(--gray-400)">${r.phone}</small>
+          </td>
+          <td>${r.studentName}</td>
+          <td>الصف ${r.grade}/${r.section||''}</td>
+          <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.subject||'—'}</td>
+          <td style="white-space:nowrap;font-size:13px">${formatDate(r.createdAt)}</td>
+          <td>${badge}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">
+              ${r.status==='done'?'👁️ عرض':'✏️ تسجيل'}
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+  }, err => {
+    // إذا لم يوجد index — نحاول بدون orderBy
+    db.collection('requests')
+      .where('staffEmail','==', staffEmail)
+      .get().then(snap => {
+        const reqs = snap.docs.map(d => ({id:d.id,...d.data()}))
+          .sort((a,b) => {
+            const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt||0);
+            const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt||0);
+            return tb - ta;
+          });
+        // إعادة تحميل بدون listener
+        renderTeacherTable(reqs, statusFilter);
+      });
+  });
+}
+
+function renderTeacherTable(reqs, statusFilter) {
+  if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
+  const total   = reqs.length;
+  const pending = reqs.filter(r => r.status==='pending').length;
+  const done    = reqs.filter(r => r.status==='done').length;
+  document.getElementById('t-kpi-total').textContent   = total;
+  document.getElementById('t-kpi-pending').textContent = pending;
+  document.getElementById('t-kpi-done').textContent    = done;
+
+  const tbody = document.getElementById('teacher-requests-tbody');
+  if (reqs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+      <div class="empty-icon">📭</div><p>لا توجد طلبات</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = reqs.map(r => {
+    const badge = r.status==='done'
+      ?`<span class="badge badge-done">✅ تم</span>`
+      :`<span class="badge badge-pending">⏳ انتظار</span>`;
+    return `<tr>
+      <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber||'—'}</code></td>
+      <td><strong>${r.parentName}</strong><br><small style="color:var(--gray-400)">${r.phone}</small></td>
+      <td>${r.studentName}</td>
+      <td>الصف ${r.grade}/${r.section||''}</td>
+      <td>${r.subject||'—'}</td>
+      <td style="font-size:13px">${formatDate(r.createdAt)}</td>
+      <td>${badge}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">
+        ${r.status==='done'?'👁️ عرض':'✏️ تسجيل'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// -------------------------------------------------------
+// 2. تسجيل الدخول / الخروج
+// -------------------------------------------------------
+async function doLogin() {
+  const emailRaw = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value.trim();
+  const errEl    = document.getElementById('login-error');
+  const btnText  = document.getElementById('login-btn-text');
+
+  errEl.style.display = 'none';
+  if (!emailRaw || !password) {
+    errEl.textContent   = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btnText.innerHTML = '<span class="loading-spinner"></span> جاري التحقق...';
+
+  try {
+    // ① تحقق من الإداريين الثابتين أولاً
+    const superAdmin = SUPER_ADMIN_EMAILS.find(e => e === emailRaw);
+
+    if (superAdmin) {
+      // إداري — تحقق من كلمة المرور في Firestore أو استخدم كلمة افتراضية
+      const snap = await db.collection('staff')
+        .where('email','==', emailRaw).get();
+
+      let staffDoc = null;
+      if (!snap.empty) {
+        staffDoc = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        if (staffDoc.password && staffDoc.password !== password) {
+          throw new Error('WRONG_PASSWORD');
+        }
+      } else {
+        // إداري غير موجود في staff — تحقق من جدول admins
+        const adminSnap = await db.collection('admins')
+          .where('email','==', emailRaw).get();
+        if (!adminSnap.empty) {
+          const adminDoc = { id: adminSnap.docs[0].id, ...adminSnap.docs[0].data() };
+          if (adminDoc.password && adminDoc.password !== password) {
+            throw new Error('WRONG_PASSWORD');
+          }
+          staffDoc = adminDoc;
+        }
+      }
+
+      const user = {
+        email:        emailRaw,
+        name:         staffDoc?.name || emailRaw.split('@')[0],
+        displayName:  staffDoc?.name || emailRaw.split('@')[0],
+        subject:      staffDoc?.subject || 'إداري',
+        isSuperAdmin: true,
+        ...(staffDoc || {}),
+      };
+
+      sessionStorage.setItem('hz_user', JSON.stringify(user));
+      currentUser = user;
+      showAdminApp(user);
+
+    } else {
+      // ② موظف عادي — تحقق من Firestore
+      if (!db) throw new Error('NO_DB');
+
+      const snap = await db.collection('staff')
+        .where('email','==', emailRaw).get();
+
+      if (snap.empty) throw new Error('NOT_FOUND');
+
+      const staffData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+
+      // تحقق من كلمة المرور
+      if (!staffData.password) throw new Error('NO_PASSWORD');
+      if (String(staffData.password).trim() !== String(password).trim()) {
+        throw new Error('WRONG_PASSWORD');
+      }
+
+      const user = {
+        email:        emailRaw,
+        displayName:  staffData.name,
+        isSuperAdmin: false,
+        ...staffData,
+      };
+
+      sessionStorage.setItem('hz_user', JSON.stringify(user));
+      currentUser = user;
+      window._currentStaff = user;
+      showTeacherApp(user, user);
+    }
+
+  } catch(e) {
+    const msgs = {
+      'NOT_FOUND':      'البريد الإلكتروني غير موجود في النظام',
+      'WRONG_PASSWORD': 'كلمة المرور غير صحيحة',
+      'NO_PASSWORD':    'لم يتم تعيين كلمة مرور لهذا الحساب — راجع الإدارة',
+      'NO_DB':          'تعذّر الاتصال بقاعدة البيانات',
+    };
+    errEl.textContent   = msgs[e.message] || 'خطأ في تسجيل الدخول — تحقق من البيانات';
+    errEl.style.display = 'block';
+    btnText.textContent = 'تسجيل الدخول';
+  }
+}
+
+async function doLogout() {
+  sessionStorage.removeItem('hz_user');
+  currentUser = null;
+  window._currentStaff = null;
+  document.getElementById('teacher-app').style.display = 'none';
+  document.getElementById('admin-app').style.display   = 'none';
+  showParentForm();
+}
+
+// -------------------------------------------------------
+// 3. بناء قوائم النموذج العام — النظام الجديد
+// -------------------------------------------------------
+
+// الأقسام الإدارية (لا تحتاج تحديد صف)
+const ADMIN_DEPTS = ['النائب الأكاديمي','الإخصائي الاجتماعي','المدير','الإدارة المالية','منسق الأنشطة'];
+
+// مخزن بيانات Firestore للنموذج
+let _fsDepts = [];   // [{id, name, isAdmin}]
+let _fsStaff = [];   // [{id, name, email, subject, deptId, grades:[]}]
+
+async function buildFormSelects() {
+  // تحميل الأقسام والموظفين من Firestore
+  if (db) {
+    try {
+      const [deptsSnap, staffSnap] = await Promise.all([
+        db.collection('departments').orderBy('order').get(),
+        db.collection('staff').get()
+      ]);
+      _fsDepts = deptsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      _fsStaff = staffSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) {
+      console.warn('Firestore fallback:', e);
+      _fsDepts = Object.keys(STAFF_DIRECTORY).map((n,i) => ({ id: n, name: n, order: i }));
+      _fsStaff = [];
+      Object.entries(STAFF_DIRECTORY).forEach(([dept, members]) => {
+        members.forEach(m => _fsStaff.push({ ...m, deptId: dept, id: m.email, grades: [] }));
+      });
+    }
+  } else {
+    _fsDepts = Object.keys(STAFF_DIRECTORY).map((n,i) => ({ id: n, name: n, order: i }));
+    _fsStaff = [];
+    Object.entries(STAFF_DIRECTORY).forEach(([dept, members]) => {
+      members.forEach(m => _fsStaff.push({ ...m, deptId: dept, id: m.email, grades: [] }));
+    });
+  }
+
+  // بناء قائمة الجهات
+  const deptEl = document.getElementById('pf-dept');
+  if (!deptEl) return;
+  deptEl.innerHTML = '<option value="">اختر الجهة</option>';
+  _fsDepts.forEach(d => {
+    deptEl.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+  });
+
+  // بناء قائمة الصفوف والشعب
+  buildGradeOptions();
+}
+
+function buildGradeOptions() {
+  const gradeEl = document.getElementById('pf-grade');
+  if (!gradeEl) return;
+
+  // استخراج كل الصفوف الفريدة من بيانات المعلمين
+  const allGrades = new Set();
+  _fsStaff.forEach(s => {
+    if (s.grades && Array.isArray(s.grades)) {
+      s.grades.forEach(g => { if (g && g.includes('/')) allGrades.add(g); });
+    }
+  });
+
+  gradeEl.innerHTML = '<option value="">اختر الصف والشعبة</option>';
+
+  // خريطة أرقام الصفوف للأسماء العربية
+  const gradeNames = { '7':'السابع','07':'السابع','8':'الثامن','08':'الثامن','9':'التاسع','09':'التاسع' };
+
+  if (allGrades.size > 0) {
+    // ترتيب الصفوف: 07/1, 07/2 ... 09/9
+    const sorted = [...allGrades].sort((a,b) => {
+      const [ag,as] = a.split('/').map(Number);
+      const [bg,bs] = b.split('/').map(Number);
+      return ag !== bg ? ag - bg : as - bs;
+    });
+    sorted.forEach(g => {
+      const [grNum, sec] = g.split('/');
+      const grName = gradeNames[grNum] || `الصف ${grNum}`;
+      gradeEl.innerHTML += `<option value="${g}">الصف ${grName} / شعبة ${sec}</option>`;
+    });
+  } else {
+    // fallback إذا لم تُحمَّل بيانات بعد
+    ['07','08','09'].forEach(gr => {
+      const grName = gradeNames[gr];
+      for (let s = 1; s <= 9; s++) {
+        gradeEl.innerHTML += `<option value="${gr}/${s}">الصف ${grName} / شعبة ${s}</option>`;
+      }
+    });
+  }
+}
+
+// مسح خطأ اختيار الموظف
+function onStaffSelect() {
+  const errEl = document.getElementById('err-staff');
+  if (errEl) errEl.textContent = '';
+}
+
+// عند تغيير الصف — نحدّث قائمة الموظفين إذا كانت الجهة محددة
+function onGradeChange() {
+  document.getElementById('err-grade').textContent = '';
+  const dept = document.getElementById('pf-dept').value;
+  if (dept) onDeptChange();
+}
+
+// عند تغيير الجهة
+function onDeptChange() {
+  document.getElementById('err-dept').textContent = '';
+  const deptId  = document.getElementById('pf-dept').value;
+  const grade   = document.getElementById('pf-grade').value;
+  const groupEl = document.getElementById('staff-selector-group');
+  const staffEl = document.getElementById('pf-staff');
+  const labelEl = document.getElementById('staff-label');
+
+  staffEl.innerHTML = '<option value="">اختر</option>';
+
+  if (!deptId) { groupEl.style.display = 'none'; return; }
+
+  const dept = _fsDepts.find(d => d.id === deptId);
+  const isAdmin = dept && (dept.isAdmin || ADMIN_DEPTS.includes(dept.name));
+
+  if (isAdmin) {
+    // إداري — يعرض الموظفين مباشرة بدون فلتر صف
+    labelEl.innerHTML = 'الموظف المعني <span class="required">*</span>';
+    const deptStaff = _fsStaff.filter(s => s.deptId === deptId || s.deptId === dept?.name);
+    if (deptStaff.length > 0) {
+      deptStaff.forEach(s => {
+        staffEl.innerHTML += `<option value="${s.id}">${s.name}${s.subject ? ' — '+s.subject : ''}</option>`;
+      });
+    } else {
+      staffEl.innerHTML += `<option value="__dept__">الموظف المسؤول عن ${dept?.name || ''}</option>`;
+    }
+    groupEl.style.display = 'block';
+  } else {
+    // معلم — يفلتر حسب الصف المحدد
+    labelEl.innerHTML = 'معلم المادة <span class="required">*</span>';
+
+    if (!grade) {
+      staffEl.innerHTML = '<option value="">— حدد الصف أولاً —</option>';
+      groupEl.style.display = 'block';
+      return;
+    }
+
+    // فلتر: موظفو هذا القسم الذين يدرّسون هذا الصف
+    const deptStaff = _fsStaff.filter(s => {
+      // مطابقة القسم بالـ id أو بالاسم
+      const matchDept = s.deptId === deptId || s.deptId === dept?.name;
+      if (!matchDept) return false;
+      // إذا لم تُحدَّد صفوف للمعلم يظهر دائماً
+      if (!s.grades || s.grades.length === 0) return true;
+      // مطابقة الصف — مع تطبيع التنسيق
+      return s.grades.some(g => {
+        const norm = (v) => String(v).trim().replace(/\s/g,'');
+        return norm(g) === norm(grade);
+      });
+    });
+
+    if (deptStaff.length === 0) {
+      staffEl.innerHTML = '<option value="">لا يوجد معلم لهذا الصف في هذه المادة</option>';
+    } else {
+      deptStaff.forEach(s => {
+        staffEl.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+      });
+    }
+    groupEl.style.display = 'block';
+  }
+}
+
+// -------------------------------------------------------
+// 4. إرسال نموذج ولي الأمر
+// -------------------------------------------------------
+async function submitParentForm() {
+  // 4a. التحقق من صحة الحقول
+  const reqFields = [
+    { el: 'pf-parent-name',  err: 'err-parent-name',  msg: 'يرجى إدخال اسم ولي الأمر' },
+    { el: 'pf-phone',        err: 'err-phone',        msg: 'يرجى إدخال رقم الهاتف' },
+    { el: 'pf-student-name', err: 'err-student-name', msg: 'يرجى إدخال اسم الطالب' },
+    { el: 'pf-grade',        err: 'err-grade',        msg: 'يرجى اختيار الصف والشعبة' },
+    { el: 'pf-dept',         err: 'err-dept',         msg: 'يرجى اختيار الجهة' },
+  ];
+
+  let valid = true;
+  reqFields.forEach(f => {
+    const val = document.getElementById(f.el)?.value?.trim();
+    document.getElementById(f.err).textContent = '';
+    document.getElementById(f.el).classList.remove('is-invalid');
+    if (!val) {
+      document.getElementById(f.err).textContent = f.msg;
+      document.getElementById(f.el).classList.add('is-invalid');
+      valid = false;
+    }
+  });
+
+  // التحقق من الموظف إذا كانت القائمة ظاهرة
+  const deptId    = document.getElementById('pf-dept').value;
+  const staffId   = document.getElementById('pf-staff').value;
+  const staffGroup = document.getElementById('staff-selector-group');
+  if (staffGroup.style.display !== 'none' && !staffId) {
+    document.getElementById('err-staff').textContent = 'يرجى اختيار الموظف المعني';
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  // 4b. تجميع البيانات
+  const gradeVal  = document.getElementById('pf-grade').value; // مثال: "07/3"
+  const [gradeNum, sectionNum] = gradeVal.split('/');
+  const staffData = _fsStaff.find(s => s.id === staffId) || null;
+  const deptData  = _fsDepts.find(d => d.id === deptId) || { name: deptId };
+  const trackNum  = generateTrackingNumber();
+  const now       = new Date();
+
+  const requestData = {
+    trackingNumber: trackNum,
+    parentName:     document.getElementById('pf-parent-name').value.trim(),
+    phone:          document.getElementById('pf-phone').value.trim(),
+    studentName:    document.getElementById('pf-student-name').value.trim(),
+    grade:          gradeNum || gradeVal,
+    section:        sectionNum || '',
+    gradeSection:   gradeVal,
+    department:     deptData.name,
+    departmentId:   deptId,
+    staffName:      staffData ? staffData.name  : '—',
+    staffEmail:     staffData ? staffData.email : '',
+    subject:        document.getElementById('pf-subject').value.trim() || 'غير محدد',
+    status:         'pending',
+    createdAt:      now,
+    updatedAt:      now,
+    contactMethod:  '',
+    contactDate:    '',
+    notes:          '',
+    completedBy:    '',
+  };
+
+  // 4c. حفظ في Firestore
+  const btn      = document.getElementById('pf-submit-btn');
+  const btnText  = document.getElementById('pf-submit-text');
+  btn.disabled   = true;
+  btnText.innerHTML = '<span class="loading-spinner"></span> جاري الإرسال...';
+
+  try {
+    if (db) {
+      await db.collection('requests').add(requestData);
+    }
+
+    // 4d. إرسال الإيميلات
+    await sendEmailNotifications(requestData);
+
+    // 4e. عرض صفحة التأكيد
+    showSuccessScreen(trackNum);
+
+  } catch (err) {
+    console.error('خطأ في الإرسال:', err);
+    // في وضع التجريب بدون Firebase نعرض التأكيد أيضاً
+    showSuccessScreen(trackNum);
+  } finally {
+    btn.disabled  = false;
+    btnText.textContent = '📨 إرسال الطلب';
+  }
+}
+
+// توليد رقم تتبع
+function generateTrackingNumber() {
+  const now = new Date();
+  const yy  = now.getFullYear().toString().slice(-2);
+  const mm  = String(now.getMonth()+1).padStart(2,'0');
+  const dd  = String(now.getDate()).padStart(2,'0');
+  const rnd = Math.floor(1000 + Math.random() * 9000);
+  return `HZ-${yy}${mm}${dd}-${rnd}`;
+}
+
+// عرض صفحة النجاح
+function showSuccessScreen(trackNum) {
+  document.getElementById('parent-form-body').innerHTML = `
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">تم إرسال طلبك بنجاح!</div>
+      <div class="success-sub">رقم تتبع طلبك:</div>
+      <div class="tracking-number">${trackNum}</div>
+      <div class="success-sub" style="max-width:380px;margin:0 auto 24px">
+        سيتم إشعار الجهة المعنية فور استلام هذا الطلب، وسيتم التواصل معك في أقرب وقت ممكن.
+        <br><br>يرجى الاحتفاظ برقم التتبع للمراجعة.
+      </div>
+      <button class="btn btn-primary" onclick="resetParentForm()">
+        📋 تقديم طلب جديد
+      </button>
+    </div>
+  `;
+}
+
+// إعادة تهيئة النموذج — النظام الجديد بالصف المدمج
+function resetParentForm() {
+  document.getElementById('parent-form-body').innerHTML = `
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">اسم ولي الأمر <span class="required">*</span></label>
+        <input type="text" id="pf-parent-name" class="form-control" placeholder="الاسم الكامل">
+        <div class="form-error" id="err-parent-name"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">رقم الهاتف / واتساب <span class="required">*</span></label>
+        <input type="tel" id="pf-phone" class="form-control" placeholder="0055xxxxxxx" dir="ltr">
+        <div class="form-error" id="err-phone"></div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">اسم الطالب <span class="required">*</span></label>
+        <input type="text" id="pf-student-name" class="form-control" placeholder="الاسم الكامل">
+        <div class="form-error" id="err-student-name"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">الصف والشعبة <span class="required">*</span></label>
+        <select id="pf-grade" class="form-control" onchange="onGradeChange()">
+          <option value="">اختر الصف والشعبة</option>
+        </select>
+        <div class="form-error" id="err-grade"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">الجهة المطلوبة للتواصل <span class="required">*</span></label>
+      <select id="pf-dept" class="form-control" onchange="onDeptChange()">
+        <option value="">اختر الجهة</option>
+      </select>
+      <div class="form-error" id="err-dept"></div>
+    </div>
+    <div class="form-group" id="staff-selector-group" style="display:none">
+      <label class="form-label" id="staff-label">الموظف المعني <span class="required">*</span></label>
+      <select id="pf-staff" class="form-control">
+        <option value="">اختر</option>
+      </select>
+      <div class="form-error" id="err-staff"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">موضوع الاستفسار (اختياري)</label>
+      <textarea id="pf-subject" class="form-control" rows="3" placeholder="أكتب موضوع طلبك أو سؤالك باختصار..."></textarea>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+      <button class="btn btn-primary btn-lg" onclick="submitParentForm()" id="pf-submit-btn">
+        <span id="pf-submit-text">📨 إرسال الطلب</span>
+      </button>
+      <a href="#" onclick="showLogin()" style="font-size:13px;color:var(--gray-400)">تسجيل دخول الكادر</a>
+    </div>
+  `;
+  // إعادة بناء القوائم
+  buildFormSelects();
+}
+
+// -------------------------------------------------------
+// 5. إرسال الإيميلات (EmailJS)
+// -------------------------------------------------------
+async function sendEmailNotifications(req) {
+  const payload = {
+    parentName:    req.parentName,
+    phone:         req.phone,
+    studentName:   req.studentName,
+    grade:         req.grade,
+    section:       req.section,
+    department:    req.department,
+    staffName:     req.staffName,
+    staffEmail:    req.staffEmail || '',
+    subject:       req.subject,
+    trackingNumber: req.trackingNumber,
+    date:          formatDate(req.createdAt),
+    vpEmail:       VICE_PRINCIPAL_EMAIL,
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept':       'application/json',
+      },
+      body: JSON.stringify({
+        // Power Automate يتوقع البيانات داخل كائن
+        parentName:     payload.parentName,
+        phone:          payload.phone,
+        studentName:    payload.studentName,
+        grade:          payload.grade,
+        section:        payload.section,
+        department:     payload.department,
+        staffName:      payload.staffName,
+        staffEmail:     payload.staffEmail,
+        subject:        payload.subject,
+        trackingNumber: payload.trackingNumber,
+        date:           payload.date,
+        vpEmail:        payload.vpEmail,
+      }),
+    });
+    console.log('✅ تم إرسال الإيميل عبر Power Automate');
+  } catch(e) {
+    console.warn('تعذّر إرسال الإيميل:', e);
+  }
+}
+
+// -------------------------------------------------------
+// 6. تحميل الطلبات من Firestore
+// -------------------------------------------------------
+function loadRequests() {
+  if (!db) {
+    // بيانات تجريبية للعرض
+    allRequests = getDemoData();
+    renderAll();
+    return;
+  }
+
+  db.collection('requests')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snapshot => {
+      allRequests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderAll();
+    }, err => {
+      console.error('خطأ في قراءة البيانات:', err);
+      showToast('خطأ في تحميل البيانات', 'error');
+    });
+}
+
+// تحديث كل مكونات العرض
+function renderAll() {
+  filteredReqs = [...allRequests];
+  renderKPIs();
+  renderRecentTable();
+  renderRequestsTable();
+  updatePendingBadge();
+  renderCharts();
+}
+
+// -------------------------------------------------------
+// 7. بطاقات KPI
+// -------------------------------------------------------
+function renderKPIs() {
+  const total   = allRequests.length;
+  const done    = allRequests.filter(r => r.status === 'done').length;
+  const pending = total - done;
+  const pct     = total > 0 ? Math.round(done / total * 100) : 0;
+
+  document.getElementById('kpi-total').textContent    = total;
+  document.getElementById('kpi-done').textContent     = done;
+  document.getElementById('kpi-pending').textContent  = pending;
+  document.getElementById('kpi-done-pct').textContent = `${pct}% من الإجمالي`;
+
+  // حساب متوسط وقت الاستجابة
+  const doneReqs = allRequests.filter(r => r.status === 'done' && r.contactDate);
+  if (doneReqs.length > 0) {
+    let totalHours = 0;
+    doneReqs.forEach(r => {
+      const created   = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
+      const contacted = new Date(r.contactDate);
+      const diff      = contacted - created;
+      totalHours += diff / 1000 / 3600;
+    });
+    const avg = Math.round(totalHours / doneReqs.length);
+    document.getElementById('kpi-avg-time').textContent =
+      avg < 24 ? `${avg} ساعة` : `${Math.round(avg/24)} يوم`;
+  }
+}
+
+function updatePendingBadge() {
+  const count = allRequests.filter(r => r.status === 'pending').length;
+  document.getElementById('pending-badge').textContent = count;
+}
+
+// -------------------------------------------------------
+// 8. جدول آخر الطلبات (لوحة المؤشرات)
+// -------------------------------------------------------
+function renderRecentTable() {
+  const tbody  = document.getElementById('recent-tbody');
+  const recent = allRequests.slice(0, 8);
+
+  if (recent.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>لا توجد طلبات حتى الآن</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = recent.map(r => buildRequestRow(r)).join('');
+}
+
+// -------------------------------------------------------
+// 9. جدول الطلبات الكامل مع الفلاتر
+// -------------------------------------------------------
+function buildFilterSelects() {
+  const deptSel  = document.getElementById('filter-dept');
+  const gradeSel = document.getElementById('filter-grade');
+
+  Object.keys(STAFF_DIRECTORY).forEach(dept => {
+    deptSel.innerHTML += `<option value="${dept}">${dept}</option>`;
+  });
+
+  GRADES.forEach(g => {
+    gradeSel.innerHTML += `<option value="${g}">الصف ${g}</option>`;
+  });
+}
+
+function applyFilters() {
+  const status = document.getElementById('filter-status').value;
+  const dept   = document.getElementById('filter-dept').value;
+  const grade  = document.getElementById('filter-grade').value;
+  const search = document.getElementById('filter-search').value.trim().toLowerCase();
+
+  filteredReqs = allRequests.filter(r => {
+    const matchStatus = !status || r.status === status;
+    const matchDept   = !dept   || r.department === dept;
+    const matchGrade  = !grade  || r.grade === grade;
+    const matchSearch = !search ||
+      r.parentName?.toLowerCase().includes(search) ||
+      r.studentName?.toLowerCase().includes(search) ||
+      r.trackingNumber?.toLowerCase().includes(search);
+    return matchStatus && matchDept && matchGrade && matchSearch;
+  });
+
+  renderRequestsTable();
+}
+
+function clearFilters() {
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-dept').value   = '';
+  document.getElementById('filter-grade').value  = '';
+  document.getElementById('filter-search').value = '';
+  applyFilters();
+}
+
+function renderRequestsTable() {
+  const tbody = document.getElementById('requests-tbody');
+  if (filteredReqs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9">
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>لا توجد نتائج تطابق الفلاتر المحددة</p>
+      </div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filteredReqs.map(r => buildRequestRow(r, true)).join('');
+}
+
+function buildRequestRow(r, showStaff = false) {
+  const date = formatDate(r.createdAt);
+  const badge = r.status === 'done'
+    ? `<span class="badge badge-done">✅ تم التواصل</span>`
+    : `<span class="badge badge-pending">⏳ في الانتظار</span>`;
+
+  const staffCol = showStaff ? `<td>${r.staffName || '—'}</td>` : '';
+  const chk = showStaff ? `<td><input type="checkbox" class="req-chk" value="${r.id}"></td>` : '<td></td>';
+
+  return `
+    <tr>
+      ${chk}
+      <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber || '—'}</code></td>
+      <td><strong>${r.parentName}</strong><br><small style="color:var(--gray-400)">${r.phone}</small></td>
+      <td>${r.studentName}</td>
+      <td>الصف ${r.grade} / ${r.section}</td>
+      <td>${r.department}</td>
+      ${staffCol}
+      <td style="white-space:nowrap">${date}</td>
+      <td>${badge}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">
+          ${r.status === 'done' ? '👁️ عرض' : '✏️ تسجيل'}
+        </button>
+        <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent;margin-right:4px"
+          onclick="deleteSingleRequest('${r.id}')">🗑️</button>
+      </td>
+    </tr>
+  `;
+}
+
+// -------------------------------------------------------
+// 10. نافذة تفاصيل الطلب وتسجيل التواصل
+// -------------------------------------------------------
+function openRequestModal(id) {
+  const req = allRequests.find(r => r.id === id);
+  if (!req) return;
+
+  activeModalId = id;
+  const isDone  = req.status === 'done';
+
+  document.getElementById('modal-body-content').innerHTML = `
+    <div class="detail-grid" style="margin-bottom:20px">
+      <div class="detail-item">
+        <div class="detail-label">رقم التتبع</div>
+        <div class="detail-value" style="color:var(--primary);font-family:monospace">${req.trackingNumber}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">تاريخ الطلب</div>
+        <div class="detail-value">${formatDate(req.createdAt)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">ولي الأمر</div>
+        <div class="detail-value">${req.parentName}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">رقم الهاتف</div>
+        <div class="detail-value" dir="ltr">${req.phone}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">اسم الطالب</div>
+        <div class="detail-value">${req.studentName}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">الصف / الشعبة</div>
+        <div class="detail-value">الصف ${req.grade} / شعبة ${req.section}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">الجهة المعنية</div>
+        <div class="detail-value">${req.department}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">الموظف المسؤول</div>
+        <div class="detail-value">${req.staffName || '—'}</div>
+      </div>
+      <div class="detail-item" style="grid-column:1/-1">
+        <div class="detail-label">موضوع الاستفسار</div>
+        <div class="detail-value">${req.subject || '—'}</div>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--gray-200);padding-top:20px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--gray-700)">
+        🗓️ سجل التواصل
+      </div>
+
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group">
+          <label class="form-label">تاريخ ووقت التواصل <span class="required">*</span></label>
+          <input type="datetime-local" id="modal-contact-date" class="form-control"
+            value="${req.contactDate || ''}" ${isDone ? '' : ''}>
+        </div>
+        <div class="form-group">
+          <label class="form-label">طريقة التواصل</label>
+          <select id="modal-contact-method" class="form-control">
+            <option value="">اختر</option>
+            ${CONTACT_METHODS.map(m => `<option value="${m}" ${req.contactMethod===m?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ملاحظات موجزة</label>
+        <textarea id="modal-notes" class="form-control" rows="3"
+          placeholder="دوّن ملاحظاتك هنا...">${req.notes || ''}</textarea>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="check-toggle">
+          <input type="checkbox" id="modal-done-check" ${isDone ? 'checked' : ''}>
+          <span style="font-size:14px;font-weight:500">وضع علامة &quot;تم التواصل&quot;</span>
+        </label>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('save-contact-btn').style.display = isDone ? 'none' : 'inline-flex';
+  if (isDone) {
+    document.getElementById('modal-footer').innerHTML = `
+      <button class="btn btn-outline" onclick="closeModal()">إغلاق</button>
+      <button class="btn btn-primary" onclick="reopenRequest()">🔄 إعادة فتح الطلب</button>
+      <button class="btn btn-success" onclick="saveContactRecord()">💾 تحديث السجل</button>
+    `;
+  }
+
+  document.getElementById('request-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('request-modal').classList.remove('open');
+  activeModalId = null;
+  // إعادة تعيين footer
+  document.getElementById('modal-footer').innerHTML = `
+    <button class="btn btn-outline" onclick="closeModal()">إغلاق</button>
+    <button class="btn btn-success" onclick="saveContactRecord()" id="save-contact-btn">✅ حفظ سجل التواصل</button>
+  `;
+}
+
+async function saveContactRecord() {
+  if (!activeModalId) return;
+
+  const contactDate   = document.getElementById('modal-contact-date').value;
+  const contactMethod = document.getElementById('modal-contact-method').value;
+  const notes         = document.getElementById('modal-notes').value.trim();
+  const isDone        = document.getElementById('modal-done-check').checked;
+
+  const updateData = {
+    contactDate,
+    contactMethod,
+    notes,
+    status:      isDone ? 'done' : 'pending',
+    updatedAt:   new Date(),
+    completedBy: currentUser?.displayName || currentUser?.email || 'admin',
+  };
+
+  const btn = document.getElementById('save-contact-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading-spinner"></span>';
+
+  try {
+    if (db) {
+      await db.collection('requests').doc(activeModalId).update(updateData);
+    } else {
+      // تحديث محلي في وضع التجريب
+      const idx = allRequests.findIndex(r => r.id === activeModalId);
+      if (idx !== -1) Object.assign(allRequests[idx], updateData);
+      renderAll();
+    }
+    closeModal();
+    showToast(isDone ? '✅ تم تسجيل التواصل بنجاح' : '💾 تم حفظ السجل', 'success');
+  } catch(e) {
+    console.error('خطأ في الحفظ:', e);
+    showToast('حدث خطأ أثناء الحفظ', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✅ حفظ سجل التواصل';
+  }
+}
+
+async function reopenRequest() {
+  if (!activeModalId) return;
+  try {
+    if (db) {
+      await db.collection('requests').doc(activeModalId).update({ status: 'pending', updatedAt: new Date() });
+    }
+    closeModal();
+    showToast('🔄 تم إعادة فتح الطلب', 'success');
+  } catch(e) {
+    showToast('خطأ في إعادة الفتح', 'error');
+  }
+}
+
+// -------------------------------------------------------
+// 11. التنقل بين الصفحات
+// -------------------------------------------------------
+function showPage(pageId) {
+  // إزالة active من كل الصفحات والروابط
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+
+  const titles = {
+    dashboard: ['لوحة المؤشرات',    'نظرة عامة على طلبات التواصل'],
+    requests:  ['الطلبات الواردة',  'إدارة ومتابعة جميع الطلبات'],
+    analytics: ['الإحصائيات',       'تقارير وتحليلات بيانية'],
+    staff:     ['إدارة الكادر',     'إضافة وتعديل الأقسام والموظفين'],
+    settings:  ['الإعدادات',        'ضبط إعدادات النظام'],
+  };
+
+  if (titles[pageId]) {
+    document.getElementById('page-title').textContent    = titles[pageId][0];
+    document.getElementById('page-subtitle').textContent = titles[pageId][1];
+  }
+
+  // تحديث الرسوم البيانية عند الانتقال لصفحة الإحصائيات
+  if (pageId === 'analytics') {
+    setTimeout(renderCharts, 100);
+  }
+
+  // تحميل بيانات الكادر عند الانتقال لصفحة إدارة الكادر
+  if (pageId === 'staff') {
+    loadStaffDirectory();
+  }
+
+  // إغلاق الشريط الجانبي في الموبايل
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// -------------------------------------------------------
+// 12. الرسوم البيانية (Chart.js)
+// -------------------------------------------------------
+function renderCharts() {
+  renderDeptChart();
+  renderTimelineChart();
+  renderGradeChart();
+  renderCompletionChart();
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) {
+    chartInstances[id].destroy();
+    delete chartInstances[id];
+  }
+}
+
+const CHART_COLORS = [
+  '#1a56db','#0e9f6e','#e3a008','#e02424','#6875f5',
+  '#ff5a1f','#057a55','#0694a2','#7e3af2','#c27803',
+];
+
+function renderDeptChart() {
+  destroyChart('dept');
+  const ctx = document.getElementById('chart-dept');
+  if (!ctx) return;
+
+  const counts = {};
+  allRequests.forEach(r => {
+    counts[r.department] = (counts[r.department] || 0) + 1;
+  });
+
+  chartInstances.dept = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   Object.keys(counts),
+      datasets: [{ label: 'عدد الطلبات', data: Object.values(counts), backgroundColor: CHART_COLORS }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
+
+function renderTimelineChart() {
+  destroyChart('timeline');
+  const ctx = document.getElementById('chart-timeline');
+  if (!ctx) return;
+
+  // آخر 30 يوماً
+  const days = {};
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days[d.toLocaleDateString('ar-QA')] = 0;
+  }
+
+  allRequests.forEach(r => {
+    const d = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
+    const label = d.toLocaleDateString('ar-QA');
+    if (days[label] !== undefined) days[label]++;
+  });
+
+  chartInstances.timeline = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels:   Object.keys(days),
+      datasets: [{
+        label: 'الطلبات',
+        data:  Object.values(days),
+        borderColor:     '#1a56db',
+        backgroundColor: 'rgba(26,86,219,0.1)',
+        tension: 0.4,
+        fill:    true,
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+}
+
+function renderGradeChart() {
+  destroyChart('grade');
+  const ctx = document.getElementById('chart-grade');
+  if (!ctx) return;
+
+  const counts = {};
+  GRADES.forEach(g => counts['الصف ' + g] = 0);
+  allRequests.forEach(r => {
+    const key = 'الصف ' + r.grade;
+    if (counts[key] !== undefined) counts[key]++;
+  });
+
+  chartInstances.grade = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels:   Object.keys(counts),
+      datasets: [{ data: Object.values(counts), backgroundColor: ['#1a56db','#0e9f6e','#e3a008'] }]
+    },
+    options: { responsive: true }
+  });
+}
+
+function renderCompletionChart() {
+  destroyChart('completion');
+  const ctx = document.getElementById('chart-completion');
+  if (!ctx) return;
+
+  const done    = allRequests.filter(r => r.status === 'done').length;
+  const pending = allRequests.length - done;
+
+  chartInstances.completion = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels:   ['تم التواصل', 'في الانتظار'],
+      datasets: [{ data: [done, pending], backgroundColor: ['#0e9f6e', '#e3a008'] }]
+    },
+    options: { responsive: true }
+  });
+}
+
+// -------------------------------------------------------
+// 13. تصدير Excel
+// -------------------------------------------------------
+function exportExcel() {
+  const data = filteredReqs.length > 0 ? filteredReqs : allRequests;
+
+  if (data.length === 0) {
+    showToast('لا توجد بيانات للتصدير', 'error');
+    return;
+  }
+
+  const rows = data.map(r => ({
+    'رقم التتبع':       r.trackingNumber || '',
+    'ولي الأمر':        r.parentName     || '',
+    'رقم الهاتف':      r.phone           || '',
+    'اسم الطالب':      r.studentName     || '',
+    'الصف':             r.grade           || '',
+    'الشعبة':           r.section         || '',
+    'الجهة المعنية':   r.department      || '',
+    'الموظف':           r.staffName       || '',
+    'الموضوع':          r.subject         || '',
+    'تاريخ الطلب':     formatDate(r.createdAt),
+    'الحالة':           r.status === 'done' ? 'تم التواصل' : 'في الانتظار',
+    'طريقة التواصل':   r.contactMethod   || '',
+    'تاريخ التواصل':   r.contactDate     || '',
+    'ملاحظات':          r.notes           || '',
+    'نُفّذ بواسطة':    r.completedBy     || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+
+  // عرض الأعمدة
+  ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 22 }));
+
+  XLSX.utils.book_append_sheet(wb, ws, 'طلبات التواصل');
+
+  const fname = `تقرير_التواصل_${new Date().toLocaleDateString('ar-QA').replace(/\//g,'-')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+
+  showToast(`📥 تم تصدير ${rows.length} سجل إلى Excel`, 'success');
+}
+
+// -------------------------------------------------------
+// 14. الإعدادات وبيانات الاختبار
+// -------------------------------------------------------
+function saveSettings() {
+  showToast('💾 تم حفظ الإعدادات', 'success');
+}
+
+function addDemoData() {
+  const demoItems = getDemoData();
+  allRequests = [...demoItems, ...allRequests];
+  renderAll();
+  showToast('✅ تمت إضافة بيانات تجريبية', 'success');
+}
+
+function clearAllData() {
+  if (!confirm('هل أنت متأكد من حذف جميع البيانات؟')) return;
+  if (db) {
+    allRequests.forEach(async r => {
+      if (r.id) await db.collection('requests').doc(r.id).delete().catch(() => {});
+    });
+  }
+  allRequests = [];
+  filteredReqs = [];
+  renderAll();
+  showToast('🗑️ تم حذف البيانات', 'success');
+}
+
+function getDemoData() {
+  const now = new Date();
+  const past = (d) => { const dt = new Date(now); dt.setDate(dt.getDate() - d); return dt; };
+
+  return [
+    {
+      id: 'demo-1', trackingNumber: 'HZ-250601-1001',
+      parentName: 'أحمد بن سعيد المنصوري', phone: '0055512345', studentName: 'محمد أحمد',
+      grade: 'السابع', section: 'أ', department: 'معلم الصف', staffName: 'أ. سعيد المنصوري',
+      staffEmail: 'said@school.edu.qa', subject: 'استفسار عن مستوى الطالب',
+      status: 'done', createdAt: past(5), contactDate: past(3).toISOString(),
+      contactMethod: 'هاتف', notes: 'تم التواصل مع ولي الأمر ومناقشة الأمر',
+      completedBy: 'تامر عمار', updatedAt: past(3),
+    },
+    {
+      id: 'demo-2', trackingNumber: 'HZ-250603-2022',
+      parentName: 'فاطمة بنت علي الكواري', phone: '0055567890', studentName: 'عبدالله علي',
+      grade: 'الثامن', section: 'ب', department: 'الإخصائي الاجتماعي', staffName: 'أ. عمر المهندي',
+      staffEmail: 'omar@school.edu.qa', subject: 'مشكلة سلوكية طارئة',
+      status: 'pending', createdAt: past(2), contactDate: '',
+      contactMethod: '', notes: '', completedBy: '', updatedAt: past(2),
+    },
+    {
+      id: 'demo-3', trackingNumber: 'HZ-250604-3033',
+      parentName: 'محمد يوسف العنزي', phone: '0055598765', studentName: 'خالد محمد',
+      grade: 'التاسع', section: 'ج', department: 'النائب الأكاديمي', staffName: 'تامر عمار',
+      staffEmail: 't.ammar0107@education.qa', subject: 'طلب شهادة قيد',
+      status: 'pending', createdAt: past(1), contactDate: '',
+      contactMethod: '', notes: '', completedBy: '', updatedAt: past(1),
+    },
+    {
+      id: 'demo-4', trackingNumber: 'HZ-250520-4044',
+      parentName: 'سلمى بنت ناصر الدوسري', phone: '0055511122', studentName: 'سعد ناصر',
+      grade: 'السابع', section: 'د', department: 'الإدارة المالية', staffName: 'أ. سلطان الدوسري',
+      staffEmail: 'sultan@school.edu.qa', subject: 'استفسار عن الرسوم',
+      status: 'done', createdAt: past(12), contactDate: past(10).toISOString(),
+      contactMethod: 'حضوري', notes: 'تم شرح آلية السداد', completedBy: 'تامر عمار', updatedAt: past(10),
+    },
+    {
+      id: 'demo-5', trackingNumber: 'HZ-250525-5055',
+      parentName: 'عبدالعزيز بن سالم البلوشي', phone: '0055533344', studentName: 'يوسف عبدالعزيز',
+      grade: 'الثامن', section: 'أ', department: 'مشرف المادة', staffName: 'أ. فيصل البلوشي',
+      staffEmail: 'faisal@school.edu.qa', subject: 'ضعف في الرياضيات',
+      status: 'pending', createdAt: past(0), contactDate: '',
+      contactMethod: '', notes: '', completedBy: '', updatedAt: past(0),
+    },
+  ];
+}
+
+// -------------------------------------------------------
+// 15. أدوات مساعدة
+// -------------------------------------------------------
+function formatDate(val) {
+  if (!val) return '—';
+  const d = val?.toDate ? val.toDate() : new Date(val);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('ar-QA', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function showToast(msg, type = '') {
+  const old = document.getElementById('toast-msg');
+  if (old) old.remove();
+
+  const el = document.createElement('div');
+  el.id        = 'toast-msg';
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+
+  setTimeout(() => el.remove(), 3500);
+}
+
+// إغلاق الشريط الجانبي عند النقر خارجه (موبايل)
+document.addEventListener('click', e => {
+  const sidebar    = document.getElementById('sidebar');
+  const hamburger  = document.querySelector('.hamburger');
+  if (!sidebar?.contains(e.target) && !hamburger?.contains(e.target)) {
+    sidebar?.classList.remove('open');
+  }
+});
+
+// -------------------------------------------------------
+// 16. حذف الطلبات
+// -------------------------------------------------------
+function toggleSelectAll(chk) {
+  document.querySelectorAll('.req-chk').forEach(c => c.checked = chk.checked);
+}
+
+async function deleteSingleRequest(id) {
+  if (!confirm('هل تريد حذف هذا الطلب؟')) return;
+  try {
+    if (db) await db.collection('requests').doc(id).delete();
+    allRequests = allRequests.filter(r => r.id !== id);
+    renderAll();
+    showToast('🗑️ تم حذف الطلب', 'success');
+  } catch(e) { showToast('خطأ في الحذف', 'error'); }
+}
+
+async function deleteSelectedRequests() {
+  const ids = [...document.querySelectorAll('.req-chk:checked')].map(c => c.value);
+  if (ids.length === 0) { showToast('لم تحدد أي طلبات', 'error'); return; }
+  if (!confirm(`هل تريد حذف ${ids.length} طلب؟`)) return;
+  try {
+    if (db) for (const id of ids) await db.collection('requests').doc(id).delete();
+    allRequests = allRequests.filter(r => !ids.includes(r.id));
+    renderAll();
+    showToast(`🗑️ تم حذف ${ids.length} طلب`, 'success');
+  } catch(e) { showToast('خطأ في الحذف', 'error'); }
+}
+
+async function deleteAllRequests() {
+  if (!confirm(`هل تريد حذف جميع الطلبات (${allRequests.length})؟ لا يمكن التراجع.`)) return;
+  try {
+    if (db) for (const r of allRequests) if (r.id) await db.collection('requests').doc(r.id).delete();
+    allRequests = [];
+    filteredReqs = [];
+    renderAll();
+    showToast('🗑️ تم حذف جميع الطلبات', 'success');
+  } catch(e) { showToast('خطأ في الحذف', 'error'); }
+}
+
+// -------------------------------------------------------
+// 17. استيراد كادر المدرسة كاملاً من الملف
+// -------------------------------------------------------
+const ALL_TEACHERS = [
+  {name:"احمد الحمود العثمان",email:"a.elhammudelosm0110@education.qa",subject:"التربية الاسلامية"},
+  {name:"احمد عبدالرحيم احمد مصطفى",email:"a.mustafa2305@education.qa",subject:"التربية الاسلامية"},
+  {name:"عامر فريد علي دراغمه",email:"a.daraghmi1706@education.qa",subject:"التربية الاسلامية"},
+  {name:"عبد القادر شغالة",email:"a.sagale0101@education.qa",subject:"التربية الاسلامية"},
+  {name:"عصام فرغلى على سرور",email:"e.serour2707@education.qa",subject:"التربية الاسلامية"},
+  {name:"مجدى معروف فالح النداف",email:"m.naddaf0105@education.qa",subject:"التربية الاسلامية"},
+  {name:"محمد احمد حسين المغربي",email:"m.almughrabi0608@education.qa",subject:"التربية الاسلامية"},
+  {name:"محمود محمد هادي صالح خضيرات",email:"m.khdairat0304@education.qa",subject:"التربية الاسلامية"},
+  {name:"عيسى على عيسى عبدالله ابوحقب",email:"e.abu-haqab2802@education.qa",subject:"التربية البدنية"},
+  {name:"محمد امين هاشم السيد اليوسف",email:"m.al-yousef0710@education.qa",subject:"التربية البدنية"},
+  {name:"نضال بن عبدالكريم دوة",email:"n.doua2708@education.qa",subject:"التربية البدنية"},
+  {name:"محمد سعيد محمد ناصر ال سعد",email:"m.al-saad0604@education.qa",subject:"التربية البدنية"},
+  {name:"الطاهر عبدالقادر شلغوم",email:"e.chalghoum1004@education.qa",subject:"الحوسبة"},
+  {name:"محمد اسماعيل محمد الرفاعى",email:"m.alrefai2703@education.qa",subject:"الحوسبة"},
+  {name:"نضال جمعه مسلم النظامي",email:"n.alnidami2908@education.qa",subject:"الحوسبة"},
+  {name:"احمد عبدالقادر صبحه",email:"a.subha0101@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"سلطان ماجد درويش حاجى الشرشنى",email:"s.al-sharshani0511@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"سليمان محمد ابراهيم البلوشي",email:"s.albalushi1102@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"عبدالكريم محمد محمد على السيد",email:"a.elsayed1234@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"محمد على حسن سعد",email:"m.saad2003@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"هلال زيدان جميل هلال",email:"h.hilal1606@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"يوسف حمد على البدر",email:"y.al-bader0101@education.qa",subject:"الدراسات الاجتماعية"},
+  {name:"احمد عبدالعظيم عماره عبدالعال",email:"a.abdelaal0902@education.qa",subject:"الرياضيات"},
+  {name:"المختار محمد اسماعيل محمد",email:"e.mohamed1801@education.qa",subject:"الرياضيات"},
+  {name:"بسام خالد ارشيد",email:"b.arshid1009@education.qa",subject:"الرياضيات"},
+  {name:"تامر مسعد ابراهيم حسوبة",email:"t.hasouba2003@education.qa",subject:"الرياضيات"},
+  {name:"حسام محمد علي العمريه",email:"h.alomaryah0211@education.qa",subject:"الرياضيات"},
+  {name:"سميح صالح اوغلو",email:"s.salihoglu3003@education.qa",subject:"الرياضيات"},
+  {name:"شاهين محمود عبدالعزيز ادم",email:"s.adam0710@education.qa",subject:"الرياضيات"},
+  {name:"عامر يعقوب خضر الهندي",email:"a.alhindi0502@education.qa",subject:"الرياضيات"},
+  {name:"محمد عبدالعظيم صالح زيدان",email:"m.zedan2403@education.qa",subject:"الرياضيات"},
+  {name:"يوسف زهير البستاني",email:"y.albostani0101@education.qa",subject:"الرياضيات"},
+  {name:"احمد عبدالقادر عبدالحفيظ حسن",email:"a.hasan1711@education.qa",subject:"العلوم"},
+  {name:"اشرف الحبيب عوينات",email:"a.aouinet1202@education.qa",subject:"العلوم"},
+  {name:"حسام ابراهيم حسن عسل",email:"h.asal1612@education.qa",subject:"العلوم"},
+  {name:"علي عيسى عبدالله البلوشي",email:"a.albalushi1801@education.qa",subject:"العلوم"},
+  {name:"محمد احمد عبدالرازق محمد العناني",email:"m.alanany0206@education.qa",subject:"العلوم"},
+  {name:"محمد فضل حسين حموده",email:"m.hammoda2202@education.qa",subject:"العلوم"},
+  {name:"محمود مصطفى محمود حسن",email:"m.hasan2503@education.qa",subject:"العلوم"},
+  {name:"ياسر الصيادي",email:"y.elsayydi0101@education.qa",subject:"العلوم"},
+  {name:"نبيل السائح",email:"n.essayeh0609@education.qa",subject:"العلوم"},
+  {name:"احمدحكم محمد شكرى حور",email:"a.hor0101@education.qa",subject:"الفنون البصرية"},
+  {name:"اسلام سميح عبدالعال يوسف",email:"e.youssef2610@education.qa",subject:"الفنون البصرية"},
+  {name:"حمود صباح جمعه ادريس مرزوق",email:"h.marzouq1003@education.qa",subject:"الفنون البصرية"},
+  {name:"عمر محمد عطا الله خويلات",email:"o.khweilat2612@education.qa",subject:"الفنون البصرية"},
+  {name:"احمد عمر قطب مخلوف",email:"a.kotb0211@education.qa",subject:"اللغة الانجليزية"},
+  {name:"حسن موسى محمد ابونجا",email:"h.abunaja1703@education.qa",subject:"اللغة الانجليزية"},
+  {name:"زياد محمد الحاج على",email:"z.haj2301@education.qa",subject:"اللغة الانجليزية"},
+  {name:"شادي مفيد نصر",email:"s.nasr0504@education.qa",subject:"اللغة الانجليزية"},
+  {name:"شريف محمد ابراهيم احمد القرنفلي",email:"s.elkaranfily0102@education.qa",subject:"اللغة الانجليزية"},
+  {name:"عبد الله خطيب",email:"a.hatip0801@education.qa",subject:"اللغة الانجليزية"},
+  {name:"محمد سمير محمد درويش",email:"m.darwish1310@education.qa",subject:"اللغة الانجليزية"},
+  {name:"وليد جاسم الذياب",email:"w.aldiab2010@education.qa",subject:"اللغة الانجليزية"},
+  {name:"وليد فايز سنوسى على",email:"w.ali01013@education.qa",subject:"اللغة الانجليزية"},
+  {name:"ابراهيم حسين محمد",email:"i.mohammad0409@education.qa",subject:"اللغة العربية"},
+  {name:"امجد عبدالجبار يوسف عباس",email:"a.abass04081@education.qa",subject:"اللغة العربية"},
+  {name:"ايمن محمود احمد ابويوسف",email:"a.abuyousef1808@education.qa",subject:"اللغة العربية"},
+  {name:"حسين درويش",email:"h.dervis1003@education.qa",subject:"اللغة العربية"},
+  {name:"سعيد عبدالعزيز محمد عبدالهادى",email:"s.abdelhady1507@education.qa",subject:"اللغة العربية"},
+  {name:"سمير جمال سيد محمد",email:"s.sayed0107@education.qa",subject:"اللغة العربية"},
+  {name:"صالح عبدالكريم محمد حماد",email:"s.hammad0206@education.qa",subject:"اللغة العربية"},
+  {name:"محمد فؤاد محمد كحيل",email:"m.kuhil1211@education.qa",subject:"اللغة العربية"},
+  {name:"مصطفى عبدالباسط كريدي",email:"m.kuridi0101@education.qa",subject:"اللغة العربية"},
+];
+
+// استيراد من ملف Excel
+async function importFromExcel(input) {
+  if (!input.files || !input.files[0]) return;
+  if (!db) { showToast('يحتاج اتصال بـ Firebase', 'error'); return; }
+
+  const statusEl = document.getElementById('import-status');
+  statusEl.textContent = '⏳ جاري قراءة الملف...';
+
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    try {
+      const data   = new Uint8Array(e.target.result);
+      const wb     = XLSX.read(data, { type: 'array' });
+      const ws     = wb.Sheets[wb.SheetNames[0]];
+      const rows   = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (rows.length < 2) { showToast('الملف فارغ أو غير صحيح', 'error'); return; }
+
+      // قراءة الأعمدة — التنسيق الصحيح:
+      // 0=الرقم، 1=الاسم، 2=كلمة المرور، 3=الإيميل، 4=المادة، 5+=الصفوف
+      const teachers = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row   = rows[i];
+        const name  = String(row[1] || '').trim();
+        const email = String(row[3] || '').trim().toLowerCase();
+        const subj  = String(row[4] || '').trim();
+        if (!name || !email) continue;
+
+        const grades = [];
+        for (let j = 5; j < row.length; j++) {
+          const cell = String(row[j] || '').trim().replace(/\s/g,'');
+          if (!cell) continue;
+          if (cell.includes('/')) {
+            const parts = cell.split('/');
+            grades.push(parts[0].padStart(2,'0') + '/' + parts[1]);
+          } else {
+            grades.push(cell);
+          }
+        }
+
+        const pwd = String(row[2] || '').trim();
+        teachers.push({ name, email, password: pwd, subject: subj, grades });
+      }
+
+      if (teachers.length === 0) { showToast('لم يُعثر على بيانات صالحة', 'error'); return; }
+
+      if (!confirm(`تم قراءة ${teachers.length} معلم. هل تريد الاستيراد؟`)) { input.value=''; return; }
+
+      // إنشاء الأقسام
+      const subjects = [...new Set(teachers.map(t => t.subject))].sort();
+      const deptMap  = {};
+
+      for (let i = 0; i < subjects.length; i++) {
+        const subj = subjects[i];
+        statusEl.textContent = `⏳ أقسام ${i+1}/${subjects.length}`;
+        const ex = await db.collection('departments').where('name','==',subj).get();
+        let deptId;
+        if (ex.empty) {
+          const cnt = (await db.collection('departments').get()).size;
+          const ref = await db.collection('departments').add({ name: subj, order: cnt, isAdmin: false });
+          deptId = ref.id;
+        } else {
+          deptId = ex.docs[0].id;
+        }
+        deptMap[subj] = deptId;
+      }
+
+      // إضافة المعلمين مع الصفوف
+      let added = 0, updated = 0;
+      for (const t of teachers) {
+        statusEl.textContent = `⏳ معلمون ${added+updated+1}/${teachers.length}`;
+        const deptId = deptMap[t.subject];
+        const ex = await db.collection('staff').where('email','==',t.email).get();
+        if (ex.empty) {
+          await db.collection('staff').add({
+            name: t.name, email: t.email, password: t.password,
+            subject: t.subject, deptId, grades: t.grades
+          });
+          added++;
+        } else {
+          await ex.docs[0].ref.update({
+            name: t.name, email: t.email, password: t.password,
+            subject: t.subject, deptId, grades: t.grades
+          });
+          updated++;
+        }
+      }
+
+      statusEl.textContent = `✅ تمت الإضافة: ${added} جديد، ${updated} محدَّث`;
+      showToast(`✅ ${added} معلم جديد، ${updated} محدَّث`, 'success');
+      input.value = '';
+      loadStaffDirectory();
+      buildFormSelects(); // تحديث نموذج ولي الأمر
+
+    } catch(err) {
+      console.error(err);
+      statusEl.textContent = '❌ خطأ: ' + err.message;
+      showToast('خطأ في قراءة الملف', 'error');
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+// -------------------------------------------------------
+// إنشاء حسابات الدخول من Excel عبر Firebase REST API
+// -------------------------------------------------------
+// تحديث كلمات المرور من Excel مباشرة في Firestore
+// النظام يعتمد على Firestore كاملاً بدون Firebase Auth
+async function importAccountsFromExcel(input) {
+  if (!input.files || !input.files[0]) return;
+  if (!db) { showToast('يحتاج اتصال بـ Firestore', 'error'); return; }
+  const statusEl = document.getElementById('import-status');
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (rows.length < 2) { showToast('الملف فارغ', 'error'); return; }
+
+      // 0=الرقم، 1=الاسم، 2=كلمة المرور، 3=الإيميل
+      const accounts = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row   = rows[i];
+        const name  = String(row[1] || '').trim();
+        const pwd   = String(row[2] || '').trim();
+        const email = String(row[3] || '').trim().toLowerCase();
+        if (!email || !pwd || !name) continue;
+        accounts.push({ email, password: pwd, name });
+      }
+
+      if (accounts.length === 0) { showToast('لم يُعثر على بيانات', 'error'); input.value=''; return; }
+      if (!confirm(`سيتم تحديث كلمات مرور ${accounts.length} موظف في Firestore. هل تريد المتابعة؟`)) {
+        input.value=''; return;
+      }
+
+      let updated = 0, notFound = 0;
+      for (let i = 0; i < accounts.length; i++) {
+        const acc = accounts[i];
+        statusEl.textContent = `⏳ تحديث ${i+1}/${accounts.length}...`;
+        try {
+          const snap = await db.collection('staff').where('email','==',acc.email).get();
+          if (!snap.empty) {
+            await snap.docs[0].ref.update({ password: acc.password, name: acc.name });
+            updated++;
+          } else {
+            // موظف غير موجود في staff — أضفه مباشرة
+            await db.collection('staff').add({
+              email: acc.email, password: acc.password, name: acc.name,
+              subject: '', deptId: '', grades: []
+            });
+            updated++;
+          }
+        } catch(err) { notFound++; }
+      }
+
+      statusEl.textContent = `✅ تم تحديث ${updated} موظف` + (notFound ? ` | فشل: ${notFound}` : '');
+      showToast(`✅ تم تحديث كلمات مرور ${updated} موظف`, 'success');
+      input.value = '';
+
+    } catch(err) {
+      statusEl.textContent = '❌ خطأ: ' + err.message;
+      showToast('خطأ في قراءة الملف', 'error');
+      input.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// -------------------------------------------------------
+// إعادة الاستيراد بعد حذف البيانات القديمة
+async function reimportFresh() {
+  if (!confirm('سيتم حذف كل بيانات الكادر الحالية ثم إعادة الاستيراد من ملف Excel. هل تريد المتابعة؟')) return;
+  const statusEl = document.getElementById('import-status');
+  statusEl.textContent = '⏳ جاري حذف البيانات القديمة...';
+  try {
+    const [depts, staff] = await Promise.all([
+      db.collection('departments').get(),
+      db.collection('staff').get()
+    ]);
+    for (const d of depts.docs) await d.ref.delete();
+    for (const s of staff.docs) await s.ref.delete();
+    _fsDepts = []; _fsStaff = [];
+    statusEl.textContent = '✅ تم الحذف — اختر ملف Excel الآن';
+    // فتح نافذة اختيار الملف تلقائياً
+    document.getElementById('import-file-input').click();
+  } catch(e) {
+    statusEl.textContent = '❌ خطأ: ' + e.message;
+  }
+}
+
+// حذف كل الكادر
+async function deleteAllStaff() {
+  if (!db) return;
+  if (!confirm('هل تريد حذف جميع الأقسام والموظفين؟ لا يمكن التراجع.')) return;
+  const statusEl = document.getElementById('import-status');
+  statusEl.textContent = '⏳ جاري الحذف...';
+  try {
+    const [depts, staff] = await Promise.all([
+      db.collection('departments').get(),
+      db.collection('staff').get()
+    ]);
+    for (const d of depts.docs) await d.ref.delete();
+    for (const s of staff.docs) await s.ref.delete();
+    _fsDepts = []; _fsStaff = [];
+    statusEl.textContent = '✅ تم حذف الكادر كاملاً';
+    showToast('🗑️ تم حذف كل الكادر', 'success');
+    loadStaffDirectory();
+    buildFormSelects();
+  } catch(e) {
+    statusEl.textContent = '❌ خطأ في الحذف';
+    showToast('خطأ: ' + e.message, 'error');
+  }
+}
+
+// -------------------------------------------------------
+// 16. إدارة الكادر — Firestore
+// -------------------------------------------------------
+
+// تحميل الأقسام والموظفين من Firestore
+async function loadStaffDirectory() {
+  if (!db) { renderStaffFromLocal(); return; }
+  try {
+    const depts = await db.collection('departments').orderBy('order').get();
+    const staff = await db.collection('staff').orderBy('name').get();
+
+    const deptsData = depts.docs.map(d => ({ id: d.id, ...d.data() }));
+    const staffData = staff.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    renderStaffPage(deptsData, staffData);
+    updateParentFormFromFirestore(deptsData, staffData);
+  } catch(e) {
+    console.warn('تحميل الكادر:', e);
+    renderStaffFromLocal();
+  }
+}
+
+// عرض صفحة إدارة الكادر
+function renderStaffPage(depts, staff) {
+  const container = document.getElementById('staff-dept-list');
+  if (!container) return;
+
+  if (depts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">👥</div>
+        <p>لا توجد أقسام بعد — ابدأ بإضافة قسم جديد</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = depts.map(dept => {
+    const deptStaff = staff.filter(s => s.deptId === dept.id);
+    return `
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title">
+            ${dept.isAdmin ? '🏛️' : '📚'} ${dept.name}
+            ${dept.isAdmin ? '<span class="badge badge-new" style="font-size:11px;margin-right:8px">إداري</span>' : ''}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="openStaffModal('','${dept.id}')">
+              ➕ إضافة موظف
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openDeptModal('${dept.id}','${dept.name}',${!!dept.isAdmin})">
+              ✏️ تعديل
+            </button>
+            <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent"
+              onclick="deleteDept('${dept.id}','${dept.name}')">
+              🗑️
+            </button>
+          </div>
+        </div>
+        ${deptStaff.length === 0
+          ? `<p style="color:var(--gray-400);font-size:13px">لا يوجد موظفون في هذا القسم بعد</p>`
+          : `<div class="table-wrapper"><table>
+              <thead><tr>
+                <th>الاسم</th><th>البريد الإلكتروني</th><th>التخصص</th><th>الصفوف</th><th>إجراء</th>
+              </tr></thead>
+              <tbody>
+                ${deptStaff.map(s => `
+                  <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td dir="ltr" style="font-size:12px">${s.email}</td>
+                    <td>${(s.subject && isNaN(s.subject)) ? s.subject : (s.subjectName || '—')}</td>
+                    <td style="font-size:11px;color:var(--gray-500)">
+                      ${s.grades && s.grades.length > 0 ? s.grades.join('، ') : '—'}
+                    </td>
+                    <td>
+                      <button class="btn btn-outline btn-sm" onclick="openStaffModal('${s.id}')">✏️</button>
+                      <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent;margin-right:4px"
+                        onclick="deleteStaff('${s.id}','${s.name}')">🗑️</button>
+                    </td>
+                  </tr>`).join('')}
+              </tbody>
+            </table></div>`
+        }
+      </div>`;
+  }).join('');
+}
+
+// تحديث نموذج ولي الأمر بالبيانات من Firestore
+function updateParentFormFromFirestore(depts, staff) {
+  const deptEl = document.getElementById('pf-dept');
+  if (!deptEl) return;
+  deptEl.innerHTML = '<option value="">اختر الجهة</option>';
+  depts.forEach(d => {
+    deptEl.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+  });
+  // تحديث القاموس المحلي
+  window._firestoreStaff = staff;
+  window._firestoreDepts = depts;
+}
+
+// تحديث قائمة الموظفين ديناميكياً من Firestore
+function updateStaffList() {
+  const deptId   = document.getElementById('pf-dept').value;
+  const groupEl  = document.getElementById('staff-selector-group');
+  const staffEl  = document.getElementById('pf-staff');
+  staffEl.innerHTML = '<option value="">اختر الموظف</option>';
+
+  if (!deptId) { groupEl.style.display = 'none'; return; }
+
+  // من Firestore إذا متاح
+  if (window._firestoreStaff) {
+    const deptStaff = window._firestoreStaff.filter(s => s.deptId === deptId);
+    deptStaff.forEach(s => {
+      staffEl.innerHTML += `<option value="${s.id}">${s.name}${s.subject ? ' — '+s.subject : ''}</option>`;
+    });
+    groupEl.style.display = 'block';
+    return;
+  }
+
+  // fallback: من STAFF_DIRECTORY المحلي
+  if (STAFF_DIRECTORY[deptId]) {
+    STAFF_DIRECTORY[deptId].forEach((s, i) => {
+      staffEl.innerHTML += `<option value="${i}">${s.name} — ${s.subject}</option>`;
+    });
+    groupEl.style.display = 'block';
+  } else {
+    groupEl.style.display = 'none';
+  }
+}
+
+function renderStaffFromLocal() {
+  const depts = Object.keys(STAFF_DIRECTORY).map((name, i) => ({ id: name, name, order: i }));
+  const staff = [];
+  Object.entries(STAFF_DIRECTORY).forEach(([dept, members]) => {
+    members.forEach(m => staff.push({ ...m, deptId: dept, id: m.email }));
+  });
+  renderStaffPage(depts, staff);
+}
+
+// ---- نوافذ القسم ----
+let editingDeptId = null;
+
+function openDeptModal(id = '', name = '', isAdmin = false) {
+  editingDeptId = id || null;
+  document.getElementById('dept-modal-title').textContent = id ? '✏️ تعديل القسم' : '➕ إضافة قسم جديد';
+  document.getElementById('dept-name-input').value  = name;
+  document.getElementById('dept-is-admin').checked  = isAdmin;
+  document.getElementById('dept-name-err').textContent = '';
+  document.getElementById('dept-modal').classList.add('open');
+}
+
+function closeDeptModal() {
+  document.getElementById('dept-modal').classList.remove('open');
+}
+
+async function saveDept() {
+  const name    = document.getElementById('dept-name-input').value.trim();
+  const isAdmin = document.getElementById('dept-is-admin').checked;
+  if (!name) { document.getElementById('dept-name-err').textContent = 'يرجى إدخال اسم القسم'; return; }
+
+  try {
+    if (editingDeptId) {
+      await db.collection('departments').doc(editingDeptId).update({ name, isAdmin });
+    } else {
+      const count = (await db.collection('departments').get()).size;
+      await db.collection('departments').add({ name, order: count, isAdmin });
+    }
+    closeDeptModal();
+    showToast(editingDeptId ? '✅ تم تعديل القسم' : '✅ تم إضافة القسم', 'success');
+    loadStaffDirectory();
+    buildFormSelects();
+  } catch(e) {
+    showToast('خطأ في الحفظ', 'error');
+  }
+}
+
+async function deleteStaff(id, name) {
+  if (!confirm(`هل تريد حذف "${name}"؟`)) return;
+  try {
+    await db.collection('staff').doc(id).delete();
+    showToast(`🗑️ تم حذف ${name}`, 'success');
+    loadStaffDirectory();
+    buildFormSelects();
+  } catch(e) {
+    showToast('خطأ في الحذف', 'error');
+  }
+}
+
+async function deleteDept(id, name) {
+  if (!confirm(`هل تريد حذف قسم "${name}"؟ سيتم حذف جميع موظفيه أيضاً.`)) return;
+  try {
+    // حذف الموظفين أولاً
+    const staffSnap = await db.collection('staff').where('deptId', '==', id).get();
+    for (const doc of staffSnap.docs) await doc.ref.delete();
+    await db.collection('departments').doc(id).delete();
+    showToast('🗑️ تم حذف القسم', 'success');
+    loadStaffDirectory();
+  } catch(e) {
+    showToast('خطأ في الحذف', 'error');
+  }
+}
+
+// ---- نوافذ الموظف ----
+let editingStaffId = null;
+
+async function openStaffModal(staffId = '', defaultDeptId = '') {
+  editingStaffId = staffId || null;
+  document.getElementById('staff-modal-title').textContent = staffId ? '✏️ تعديل بيانات الموظف' : '👤 إضافة موظف جديد';
+
+  // تحميل الأقسام في القائمة
+  const select = document.getElementById('staff-dept-select');
+  select.innerHTML = '<option value="">اختر القسم</option>';
+  try {
+    const depts = await db.collection('departments').orderBy('order').get();
+    depts.docs.forEach(d => {
+      select.innerHTML += `<option value="${d.id}" ${d.id===defaultDeptId?'selected':''}>${d.data().name}</option>`;
+    });
+  } catch(e) {
+    Object.keys(STAFF_DIRECTORY).forEach(d => {
+      select.innerHTML += `<option value="${d}">${d}</option>`;
+    });
+  }
+
+  // تعبئة البيانات إذا تعديل
+  if (staffId) {
+    try {
+      const doc = await db.collection('staff').doc(staffId).get();
+      const data = doc.data();
+      document.getElementById('staff-dept-select').value    = data.deptId || '';
+      document.getElementById('staff-name-input').value     = data.name || '';
+      document.getElementById('staff-email-input').value    = data.email || '';
+      document.getElementById('staff-subject-input').value  = data.subject || '';
+      document.getElementById('staff-password-input').value = data.password || '';
+    } catch(e) {}
+  } else {
+    document.getElementById('staff-name-input').value    = '';
+    document.getElementById('staff-email-input').value   = '';
+    document.getElementById('staff-subject-input').value = '';
+  }
+
+  ['staff-dept-err','staff-name-err','staff-email-err'].forEach(id => {
+    document.getElementById(id).textContent = '';
+  });
+
+  document.getElementById('staff-modal').classList.add('open');
+}
+
+function closeStaffModal() {
+  document.getElementById('staff-modal').classList.remove('open');
+}
+
+async function saveStaff() {
+  const deptId   = document.getElementById('staff-dept-select').value;
+  const name     = document.getElementById('staff-name-input').value.trim();
+  const email    = document.getElementById('staff-email-input').value.trim();
+  const subject  = document.getElementById('staff-subject-input').value.trim();
+  const password = document.getElementById('staff-password-input').value.trim();
+
+  let valid = true;
+  if (!deptId)   { document.getElementById('staff-dept-err').textContent     = 'يرجى اختيار القسم'; valid = false; }
+  if (!name)     { document.getElementById('staff-name-err').textContent     = 'يرجى إدخال الاسم'; valid = false; }
+  if (!email)    { document.getElementById('staff-email-err').textContent    = 'يرجى إدخال البريد الإلكتروني'; valid = false; }
+  if (!password) { document.getElementById('staff-password-err').textContent = 'يرجى إدخال كلمة المرور'; valid = false; }
+  if (!valid) return;
+
+  try {
+    const data = { deptId, name, email, password, subject, grades: [] };
+    if (editingStaffId) {
+      await db.collection('staff').doc(editingStaffId).update(data);
+    } else {
+      await db.collection('staff').add(data);
+    }
+    closeStaffModal();
+    showToast(editingStaffId ? '✅ تم تعديل بيانات الموظف' : '✅ تم إضافة الموظف', 'success');
+    loadStaffDirectory();
+    buildFormSelects();
+  } catch(e) {
+    showToast('خطأ في الحفظ', 'error');
+  }
+}
+
+// -------------------------------------------------------
+// 🚀 تشغيل التطبيق
+// -------------------------------------------------------
+document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
