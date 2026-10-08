@@ -2449,7 +2449,9 @@ async function lookupParentRequests() {
   resultsEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-500)">⏳ جاري البحث...</div>';
 
   try {
-    const snap = await db.collection('requests').where('phone','==',phone).orderBy('createdAt','desc').get();
+    // ملاحظة: نتجنب orderBy مع where لتفادي الحاجة لـ composite index في Firestore
+    // الترتيب يتم يدوياً في JS بعد جلب النتائج
+    const snap = await db.collection('requests').where('phone','==',phone).get();
     if (snap.empty) {
       resultsEl.innerHTML = `
         <div style="text-align:center;padding:30px;color:var(--gray-500)">
@@ -2461,8 +2463,17 @@ async function lookupParentRequests() {
           </button>
         </div>`;
     } else {
+      // ترتيب يدوي تنازلياً حسب تاريخ الإنشاء (بدون orderBy لتجنب Composite Index)
+      const docs = snap.docs.slice().sort((a, b) => {
+        const ta = a.data().createdAt;
+        const tb = b.data().createdAt;
+        const na = ta && ta.toDate ? ta.toDate().getTime() : 0;
+        const nb = tb && tb.toDate ? tb.toDate().getTime() : 0;
+        return nb - na; // الأحدث أولاً
+      });
+
       let rows = '';
-      snap.docs.forEach((doc, i) => {
+      docs.forEach((doc, i) => {
         const r = { id: doc.id, ...doc.data() };
         const statusColor = r.status === 'done' ? '#0e9f6e' : r.status === 'inprogress' ? '#c27803' : '#e02424';
         const statusLabel = r.status === 'done' ? '✅ تم التواصل' : r.status === 'inprogress' ? '⏳ جاري المتابعة' : '🔴 في الانتظار';
@@ -2495,8 +2506,30 @@ async function lookupParentRequests() {
         ${rows}`;
     }
   } catch(e) {
-    console.error(e);
-    resultsEl.innerHTML = `<div style="color:var(--danger);text-align:center;padding:20px">⚠️ حدث خطأ في البحث. تحقق من الاتصال.</div>`;
+    console.error('lookupParentRequests error:', e);
+    let errMsg = '';
+    let errHint = 'تأكد من الاتصال بالإنترنت ثم أعد المحاولة.';
+
+    if (e && e.code === 'permission-denied') {
+      errMsg = 'غير مصرح بالوصول (permission-denied)';
+      errHint = '⚙️ يرجى تحديث قواعد Firestore للسماح بالقراءة العامة على مجموعة requests.';
+    } else if (e && e.code === 'failed-precondition') {
+      errMsg = 'يحتاج الاستعلام إلى فهرس في Firestore (failed-precondition)';
+      errHint = '⚙️ افتح رابط الخطأ في Console المتصفح لإنشاء الفهرس تلقائياً.';
+    } else if (e && e.code === 'unavailable') {
+      errMsg = 'خدمة Firestore غير متاحة حالياً';
+      errHint = 'تحقق من الاتصال بالإنترنت وأعد المحاولة.';
+    } else {
+      errMsg = e && e.code ? `رمز الخطأ: ${e.code}` : (e && e.message ? e.message.substring(0,150) : 'خطأ غير معروف');
+    }
+
+    resultsEl.innerHTML = `
+      <div style="color:var(--danger);text-align:center;padding:20px;background:#fde8e822;border-radius:var(--radius);border:1px solid #fde8e8">
+        <div style="font-size:28px;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:600;margin-bottom:6px">حدث خطأ في البحث</div>
+        <div style="font-size:12px;color:var(--gray-600);background:#fff;padding:8px;border-radius:4px;margin:8px 0;font-family:monospace;text-align:right">${errMsg}</div>
+        <div style="font-size:13px;margin-top:8px;color:var(--gray-600)">${errHint}</div>
+      </div>`;
   }
   btn.disabled = false; btn.textContent = '🔍 بحث';
 }
