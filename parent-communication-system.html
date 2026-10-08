@@ -1059,29 +1059,39 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
 
       <!-- ======================== صفحة: الطلبات ======================== -->
       <div class="page" id="page-requests">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">📋 جميع الطلبات الواردة</div>
-            <div style="display:flex;gap:8px">
-              <button class="btn btn-success btn-sm" onclick="exportExcel()">📥 تصدير Excel</button>
-              <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent"
-                onclick="deleteSelectedRequests()" id="delete-selected-btn" style="display:none">
-                🗑️ حذف المحدد
-              </button>
-              <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent"
-                onclick="deleteAllRequests()">
-                🗑️ حذف الكل
-              </button>
-            </div>
-          </div>
 
-          <!-- شريط الفلاتر -->
-          <div class="filters-bar">
-            <select class="form-control" style="width:auto;min-width:130px" id="filter-status" onchange="applyFilters()">
-              <option value="">كل الحالات</option>
-              <option value="pending">في الانتظار</option>
-              <option value="done">تم التواصل</option>
-            </select>
+        <!-- أزرار الإجراءات العامة -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="send-all-btn" onclick="sendAllNewRequests()" style="display:none">
+              📧 إرسال الكل للمعنيين
+            </button>
+            <button class="btn btn-success btn-sm" onclick="exportExcel()">📥 تصدير Excel</button>
+            <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent" onclick="deleteAllRequests()">🗑️ حذف الكل</button>
+          </div>
+          <div style="font-size:13px;color:var(--gray-500)" id="send-progress"></div>
+        </div>
+
+        <!-- التبويبات الثلاثة -->
+        <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid var(--gray-200)">
+          <button class="req-tab active" id="tab-new"        onclick="switchReqTab('new')"
+            style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:600;color:var(--primary);border-bottom:2px solid var(--primary);margin-bottom:-2px;cursor:pointer">
+            🆕 جديد <span id="tab-count-new" class="nav-badge" style="background:var(--primary)">0</span>
+          </button>
+          <button class="req-tab" id="tab-inprogress"      onclick="switchReqTab('inprogress')"
+            style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:500;color:var(--gray-500);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer">
+            ⚙️ تحت الإجراء <span id="tab-count-inprogress" class="nav-badge" style="background:var(--warning)">0</span>
+          </button>
+          <button class="req-tab" id="tab-done"            onclick="switchReqTab('done')"
+            style="padding:10px 20px;border:none;background:none;font-family:var(--font);font-size:14px;font-weight:500;color:var(--gray-500);border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer">
+            ✅ منتهية <span id="tab-count-done" class="nav-badge" style="background:var(--success)">0</span>
+          </button>
+        </div>
+
+        <!-- جدول الطلبات -->
+        <div class="card" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);margin-top:0">
+          <!-- فلاتر -->
+          <div class="filters-bar" style="padding-top:16px">
             <select class="form-control" style="width:auto;min-width:130px" id="filter-dept" onchange="applyFilters()">
               <option value="">كل الجهات</option>
             </select>
@@ -1101,16 +1111,14 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
                   <th>رقم الطلب</th>
                   <th>ولي الأمر</th>
                   <th>الطالب</th>
-                  <th>الصف / الشعبة</th>
-                  <th>الجهة المعنية</th>
-                  <th>الموظف</th>
-                  <th>تاريخ الطلب</th>
-                  <th>الحالة</th>
-                  <th>تفاصيل</th>
+                  <th>الصف</th>
+                  <th>الجهة / الموظف</th>
+                  <th>التاريخ</th>
+                  <th>إجراء</th>
                 </tr>
               </thead>
               <tbody id="requests-tbody">
-                <tr><td colspan="9" style="text-align:center;padding:32px;color:var(--gray-400)">
+                <tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400)">
                   جاري تحميل البيانات...
                 </td></tr>
               </tbody>
@@ -2046,48 +2054,9 @@ function resetParentForm() {
 // 5. إرسال الإيميلات (EmailJS)
 // -------------------------------------------------------
 async function sendEmailNotifications(req) {
-  const payload = {
-    parentName:    req.parentName,
-    phone:         req.phone,
-    studentName:   req.studentName,
-    grade:         req.grade,
-    section:       req.section,
-    department:    req.department,
-    staffName:     req.staffName,
-    staffEmail:    req.staffEmail || '',
-    subject:       req.subject,
-    trackingNumber: req.trackingNumber,
-    date:          formatDate(req.createdAt),
-    vpEmail:       VICE_PRINCIPAL_EMAIL,
-  };
-
-  try {
-    await fetch(APPS_SCRIPT_URL, {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept':       'application/json',
-      },
-      body: JSON.stringify({
-        // Power Automate يتوقع البيانات داخل كائن
-        parentName:     payload.parentName,
-        phone:          payload.phone,
-        studentName:    payload.studentName,
-        grade:          payload.grade,
-        section:        payload.section,
-        department:     payload.department,
-        staffName:      payload.staffName,
-        staffEmail:     payload.staffEmail,
-        subject:        payload.subject,
-        trackingNumber: payload.trackingNumber,
-        date:           payload.date,
-        vpEmail:        payload.vpEmail,
-      }),
-    });
-    console.log('✅ تم إرسال الإيميل عبر Power Automate');
-  } catch(e) {
-    console.warn('تعذّر إرسال الإيميل:', e);
-  }
+  // هذه الدالة للإرسال التلقائي عند تقديم الطلب (غير مستخدمة حالياً)
+  // الإرسال يتم يدوياً من الأدمن عبر sendEmailForRequest
+  console.log('📋 طلب جديد محفوظ في Firestore:', req.trackingNumber);
 }
 
 // -------------------------------------------------------
@@ -2117,7 +2086,7 @@ function renderAll() {
   filteredReqs = [...allRequests];
   renderKPIs();
   renderRecentTable();
-  renderRequestsTable();
+  applyFilters();
   updatePendingBadge();
   renderCharts();
 }
@@ -2126,15 +2095,16 @@ function renderAll() {
 // 7. بطاقات KPI
 // -------------------------------------------------------
 function renderKPIs() {
-  const total   = allRequests.length;
-  const done    = allRequests.filter(r => r.status === 'done').length;
-  const pending = total - done;
-  const pct     = total > 0 ? Math.round(done / total * 100) : 0;
+  const total      = allRequests.length;
+  const done       = allRequests.filter(r => r.status === 'done').length;
+  const inprogress = allRequests.filter(r => r.status === 'inprogress').length;
+  const pending    = allRequests.filter(r => r.status === 'pending').length;
+  const pct        = total > 0 ? Math.round(done / total * 100) : 0;
 
   document.getElementById('kpi-total').textContent    = total;
   document.getElementById('kpi-done').textContent     = done;
-  document.getElementById('kpi-pending').textContent  = pending;
-  document.getElementById('kpi-done-pct').textContent = `${pct}% من الإجمالي`;
+  document.getElementById('kpi-pending').textContent  = pending + inprogress;
+  document.getElementById('kpi-done-pct').textContent = `${pct}% منتهية | ${inprogress} تحت الإجراء`;
 
   // حساب متوسط وقت الاستجابة
   const doneReqs = allRequests.filter(r => r.status === 'done' && r.contactDate);
@@ -2154,7 +2124,9 @@ function renderKPIs() {
 
 function updatePendingBadge() {
   const count = allRequests.filter(r => r.status === 'pending').length;
-  document.getElementById('pending-badge').textContent = count;
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.textContent = count;
+  updateTabCounts();
 }
 
 // -------------------------------------------------------
@@ -2178,92 +2150,147 @@ function renderRecentTable() {
 }
 
 // -------------------------------------------------------
-// 9. جدول الطلبات الكامل مع الفلاتر
+// 9. التبويبات والفلاتر
 // -------------------------------------------------------
+let currentTab = 'new'; // new | inprogress | done
+
+// تعريف الحالات لكل تبويب
+const TAB_STATUS = {
+  new:        'pending',
+  inprogress: 'inprogress',
+  done:       'done',
+};
+
+function switchReqTab(tab) {
+  currentTab = tab;
+
+  // تحديث مظهر التبويبات
+  document.querySelectorAll('.req-tab').forEach(t => {
+    t.style.color       = 'var(--gray-500)';
+    t.style.fontWeight  = '500';
+    t.style.borderBottom = '2px solid transparent';
+  });
+  const active = document.getElementById('tab-' + tab);
+  if (active) {
+    active.style.color       = 'var(--primary)';
+    active.style.fontWeight  = '600';
+    active.style.borderBottom = '2px solid var(--primary)';
+  }
+
+  // إظهار/إخفاء زر إرسال الكل
+  const sendAllBtn = document.getElementById('send-all-btn');
+  if (sendAllBtn) {
+    sendAllBtn.style.display = (tab === 'new' && isSuperAdmin()) ? 'inline-flex' : 'none';
+  }
+
+  applyFilters();
+}
+
+function isSuperAdmin() {
+  const email = currentUser?.email?.toLowerCase() || '';
+  return SUPER_ADMIN_EMAILS.includes(email);
+}
+
 function buildFilterSelects() {
   const deptSel  = document.getElementById('filter-dept');
   const gradeSel = document.getElementById('filter-grade');
+  if (!deptSel || !gradeSel) return;
 
-  Object.keys(STAFF_DIRECTORY).forEach(dept => {
-    deptSel.innerHTML += `<option value="${dept}">${dept}</option>`;
-  });
+  // بناء قائمة الجهات من Firestore أو STAFF_DIRECTORY
+  const depts = _fsDepts.length > 0
+    ? _fsDepts.map(d => d.name)
+    : Object.keys(STAFF_DIRECTORY);
 
-  GRADES.forEach(g => {
-    gradeSel.innerHTML += `<option value="${g}">الصف ${g}</option>`;
+  deptSel.innerHTML = '<option value="">كل الجهات</option>';
+  depts.forEach(d => { deptSel.innerHTML += `<option value="${d}">${d}</option>`; });
+
+  gradeSel.innerHTML = '<option value="">كل الصفوف</option>';
+  ['07','08','09'].forEach(g => {
+    const names = {'07':'السابع','08':'الثامن','09':'التاسع'};
+    gradeSel.innerHTML += `<option value="${g}">الصف ${names[g]}</option>`;
   });
 }
 
 function applyFilters() {
-  const status = document.getElementById('filter-status').value;
-  const dept   = document.getElementById('filter-dept').value;
-  const grade  = document.getElementById('filter-grade').value;
-  const search = document.getElementById('filter-search').value.trim().toLowerCase();
+  const dept   = document.getElementById('filter-dept')?.value  || '';
+  const grade  = document.getElementById('filter-grade')?.value || '';
+  const search = document.getElementById('filter-search')?.value.trim().toLowerCase() || '';
+  const tabStatus = TAB_STATUS[currentTab];
 
   filteredReqs = allRequests.filter(r => {
-    const matchStatus = !status || r.status === status;
+    const matchStatus = r.status === tabStatus;
     const matchDept   = !dept   || r.department === dept;
-    const matchGrade  = !grade  || r.grade === grade;
+    const matchGrade  = !grade  || String(r.grade||'').startsWith(grade.replace('0',''));
     const matchSearch = !search ||
-      r.parentName?.toLowerCase().includes(search) ||
-      r.studentName?.toLowerCase().includes(search) ||
-      r.trackingNumber?.toLowerCase().includes(search);
+      r.parentName?.toLowerCase().includes(search)    ||
+      r.studentName?.toLowerCase().includes(search)   ||
+      r.trackingNumber?.toLowerCase().includes(search)||
+      r.staffName?.toLowerCase().includes(search);
     return matchStatus && matchDept && matchGrade && matchSearch;
   });
 
   renderRequestsTable();
+  updateTabCounts();
+}
+
+function updateTabCounts() {
+  document.getElementById('tab-count-new').textContent        = allRequests.filter(r=>r.status==='pending').length;
+  document.getElementById('tab-count-inprogress').textContent = allRequests.filter(r=>r.status==='inprogress').length;
+  document.getElementById('tab-count-done').textContent       = allRequests.filter(r=>r.status==='done').length;
 }
 
 function clearFilters() {
-  document.getElementById('filter-status').value = '';
-  document.getElementById('filter-dept').value   = '';
-  document.getElementById('filter-grade').value  = '';
-  document.getElementById('filter-search').value = '';
+  const dept   = document.getElementById('filter-dept');
+  const grade  = document.getElementById('filter-grade');
+  const search = document.getElementById('filter-search');
+  if (dept)   dept.value   = '';
+  if (grade)  grade.value  = '';
+  if (search) search.value = '';
   applyFilters();
 }
 
-function renderRequestsTable() {
-  const tbody = document.getElementById('requests-tbody');
-  if (filteredReqs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9">
-      <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>لا توجد نتائج تطابق الفلاتر المحددة</p>
-      </div>
-    </td></tr>`;
-    return;
-  }
-  tbody.innerHTML = filteredReqs.map(r => buildRequestRow(r, true)).join('');
-}
-
 function buildRequestRow(r, showStaff = false) {
-  const date = formatDate(r.createdAt);
-  const badge = r.status === 'done'
-    ? `<span class="badge badge-done">✅ تم التواصل</span>`
-    : `<span class="badge badge-pending">⏳ في الانتظار</span>`;
+  const date    = formatDate(r.createdAt);
+  const isAdmin = isSuperAdmin();
+  let actionBtns = '';
 
-  const staffCol = showStaff ? `<td>${r.staffName || '—'}</td>` : '';
+  if (r.status === 'pending') {
+    if (isAdmin) {
+      actionBtns += `<button class="btn btn-primary btn-sm" onclick="sendEmailForRequest('${r.id}')" style="margin-left:4px">📧 إرسال</button>`;
+    }
+    actionBtns += `<button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">تفاصيل</button>`;
+  } else if (r.status === 'inprogress') {
+    actionBtns += `<button class="btn btn-success btn-sm" onclick="openRequestModal('${r.id}')">✏️ تسجيل</button>`;
+  } else {
+    actionBtns += `<button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">👁️ عرض</button>`;
+  }
+  actionBtns += ` <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent" onclick="deleteSingleRequest('${r.id}')">🗑️</button>`;
+
   const chk = showStaff ? `<td><input type="checkbox" class="req-chk" value="${r.id}"></td>` : '<td></td>';
 
   return `
     <tr>
       ${chk}
-      <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber || '—'}</code></td>
+      <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber||'—'}</code></td>
       <td><strong>${r.parentName}</strong><br><small style="color:var(--gray-400)">${r.phone}</small></td>
       <td>${r.studentName}</td>
-      <td>الصف ${r.grade} / ${r.section}</td>
-      <td>${r.department}</td>
-      ${staffCol}
-      <td style="white-space:nowrap">${date}</td>
-      <td>${badge}</td>
-      <td>
-        <button class="btn btn-outline btn-sm" onclick="openRequestModal('${r.id}')">
-          ${r.status === 'done' ? '👁️ عرض' : '✏️ تسجيل'}
-        </button>
-        <button class="btn btn-sm" style="color:var(--danger);border:1px solid var(--danger);background:transparent;margin-right:4px"
-          onclick="deleteSingleRequest('${r.id}')">🗑️</button>
-      </td>
+      <td style="font-size:13px">الصف ${r.grade}/${r.section||''}</td>
+      <td>${r.department}<br><small style="color:var(--gray-500)">${r.staffName||''}</small></td>
+      <td style="font-size:12px;white-space:nowrap">${date}</td>
+      <td style="white-space:nowrap">${actionBtns}</td>
     </tr>
   `;
+}
+
+function renderRequestsTable() {
+  const tbody = document.getElementById('requests-tbody');
+  if (!tbody) return;
+  if (filteredReqs.length === 0) {
+    const msgs = {new:'لا توجد طلبات جديدة',inprogress:'لا توجد طلبات تحت الإجراء',done:'لا توجد طلبات منتهية'};
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><p>${msgs[currentTab]||'لا توجد طلبات'}</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filteredReqs.map(r => buildRequestRow(r, true)).join('');
 }
 
 // -------------------------------------------------------
@@ -2385,9 +2412,9 @@ async function saveContactRecord() {
     contactDate,
     contactMethod,
     notes,
-    status:      isDone ? 'done' : 'pending',
+    status:      isDone ? 'done' : 'inprogress',
     updatedAt:   new Date(),
-    completedBy: currentUser?.displayName || currentUser?.email || 'admin',
+    completedBy: currentUser?.name || currentUser?.displayName || currentUser?.email || 'admin',
   };
 
   const btn = document.getElementById('save-contact-btn');
@@ -2766,6 +2793,94 @@ document.addEventListener('click', e => {
     sidebar?.classList.remove('open');
   }
 });
+
+// -------------------------------------------------------
+// 16. إرسال الإيميلات من لوحة الأدمن
+// -------------------------------------------------------
+
+// رابط النظام
+const SYSTEM_URL = 'https://tamerammar55.github.io/parent-communication-system.html/parent-communication-system.html';
+
+// إرسال إيميل لطلب واحد
+async function sendEmailForRequest(id) {
+  const req = allRequests.find(r => r.id === id);
+  if (!req) return;
+
+  if (!req.staffEmail) {
+    showToast('لا يوجد إيميل للموظف المعني', 'error');
+    return;
+  }
+
+  // جلب كلمة مرور الموظف من Firestore
+  let staffPassword = '—';
+  if (db) {
+    try {
+      const snap = await db.collection('staff').where('email','==', req.staffEmail).get();
+      if (!snap.empty) staffPassword = snap.docs[0].data().password || '—';
+    } catch(e) {}
+  }
+
+  const senderName  = currentUser?.name || currentUser?.displayName || 'الإدارة';
+  const senderEmail = currentUser?.email || VICE_PRINCIPAL_EMAIL;
+
+  const payload = {
+    ...req,
+    date:           formatDate(req.createdAt),
+    staffPassword,
+    systemUrl:      SYSTEM_URL,
+    senderName,
+    vpEmail:        senderEmail,
+    grade:          req.grade || '',
+    section:        req.section || '',
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+
+    // تغيير الحالة من pending إلى inprogress
+    if (db) {
+      await db.collection('requests').doc(id).update({
+        status:    'inprogress',
+        emailSentAt: new Date(),
+        emailSentBy: senderEmail,
+        updatedAt:   new Date(),
+      });
+    }
+
+    showToast(`✅ تم إرسال الإيميل لـ ${req.staffName}`, 'success');
+
+  } catch(e) {
+    console.error(e);
+    showToast('خطأ في إرسال الإيميل', 'error');
+  }
+}
+
+// إرسال لجميع الطلبات الجديدة
+async function sendAllNewRequests() {
+  const newReqs = allRequests.filter(r => r.status === 'pending' && r.staffEmail);
+  if (newReqs.length === 0) {
+    showToast('لا توجد طلبات جديدة للإرسال', 'error');
+    return;
+  }
+  if (!confirm(`سيتم إرسال إيميل لـ ${newReqs.length} موظف. هل تريد المتابعة؟`)) return;
+
+  const progress = document.getElementById('send-progress');
+  let sent = 0;
+
+  for (const req of newReqs) {
+    progress.textContent = `⏳ جاري الإرسال... ${sent+1}/${newReqs.length}`;
+    await sendEmailForRequest(req.id);
+    sent++;
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  progress.textContent = `✅ تم إرسال ${sent} إيميل`;
+  setTimeout(() => { progress.textContent = ''; }, 4000);
+}
 
 // -------------------------------------------------------
 // 16. حذف الطلبات
