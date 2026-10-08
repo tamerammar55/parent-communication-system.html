@@ -2841,10 +2841,9 @@ async function sendEmailForRequest(id) {
       body:    JSON.stringify(payload),
     });
 
-    // تغيير الحالة من pending إلى inprogress
+    // تسجيل وقت الإرسال فقط — الحالة تبقى pending حتى يسجل المعلم التواصل
     if (db) {
       await db.collection('requests').doc(id).update({
-        status:    'inprogress',
         emailSentAt: new Date(),
         emailSentBy: senderEmail,
         updatedAt:   new Date(),
