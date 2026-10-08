@@ -1558,6 +1558,8 @@ function loadTeacherRequests() {
             const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt||0);
             return tb - ta;
           });
+        // إضافة إلى allRequests (مهم للجوال)
+        allRequests = reqs;
         // إعادة تحميل بدون listener
         renderTeacherTable(reqs, statusFilter);
       });
@@ -1565,6 +1567,9 @@ function loadTeacherRequests() {
 }
 
 function renderTeacherTable(reqs, statusFilter) {
+  // إضافة إلى allRequests حتى تعمل openRequestModal (مهم للجوال)
+  allRequests = reqs;
+
   if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
   const total   = reqs.length;
   const pending = reqs.filter(r => r.status==='pending').length;
