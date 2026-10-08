@@ -630,6 +630,141 @@ tbody td { padding: 13px 16px; color: var(--gray-700); vertical-align: middle; }
 .toast.success { background: var(--success); }
 .toast.error { background: var(--danger); }
 
+/* ====================================================
+   صفحة الطباعة الاحترافية
+   ==================================================== */
+@media print {
+  body * { visibility: hidden !important; }
+  #print-area, #print-area * { visibility: visible !important; }
+  #print-area {
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100% !important;
+    background: white !important;
+    z-index: 99999;
+  }
+}
+
+#print-area {
+  display: none;
+  direction: rtl;
+  font-family: 'Tajawal', Arial, sans-serif;
+  background: white;
+  color: #111;
+}
+
+.print-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 3px solid #1a56db;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.print-school-info { text-align: right; }
+.print-school-name { font-size: 18px; font-weight: 700; color: #1a56db; }
+.print-ministry { font-size: 12px; color: #666; margin-top: 2px; }
+.print-logo { font-size: 48px; }
+
+.print-report-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 16px 0 6px;
+  color: #111;
+}
+
+.print-report-meta {
+  text-align: center;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.print-kpi-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.print-kpi-box {
+  flex: 1;
+  min-width: 100px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.print-kpi-num { font-size: 28px; font-weight: 700; color: #1a56db; }
+.print-kpi-lbl { font-size: 12px; color: #555; margin-top: 2px; }
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.print-table th {
+  background: #1a56db;
+  color: white;
+  padding: 8px 10px;
+  text-align: right;
+  font-weight: 600;
+  border: 1px solid #1240a6;
+}
+
+.print-table td {
+  padding: 7px 10px;
+  border: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+
+.print-table tr:nth-child(even) td { background: #f9fafb; }
+
+.print-footer {
+  margin-top: 24px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+}
+
+.print-sign-area {
+  display: flex;
+  gap: 40px;
+  margin-top: 30px;
+  justify-content: flex-end;
+}
+
+.print-sign-box {
+  text-align: center;
+  min-width: 150px;
+}
+
+.print-sign-line {
+  border-top: 1px solid #333;
+  margin-top: 40px;
+  padding-top: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.print-section-title {
+  background: #f3f4f6;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 16px 0 8px;
+  border-right: 4px solid #1a56db;
+  border-radius: 0 6px 6px 0;
+}
+
 /* حالة التحميل */
 .loading-spinner {
   width: 18px; height: 18px;
@@ -888,10 +1023,11 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
       <div class="card">
         <div class="card-header">
           <div class="card-title">📬 طلبات التواصل الواردة إليّ</div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <select class="form-control" style="width:auto" id="t-filter-status" onchange="loadTeacherRequests()">
               <option value="">كل الحالات</option>
               <option value="pending">في الانتظار</option>
+              <option value="inprogress">تحت الإجراء</option>
               <option value="done">تم التواصل</option>
             </select>
           </div>
@@ -918,6 +1054,103 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
           </table>
         </div>
       </div>
+
+      <!-- ===== قسم التقارير للمعلم ===== -->
+      <div class="card" style="margin-top:24px">
+        <div class="card-header">
+          <div class="card-title">📊 التقارير التفصيلية</div>
+        </div>
+        <div style="padding:16px">
+
+          <!-- فلاتر التقرير -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">
+            <div class="form-group" style="margin:0;min-width:160px">
+              <label class="form-label" style="font-size:12px;margin-bottom:4px">نوع التقرير</label>
+              <select id="t-rpt-type" class="form-control" onchange="onTeacherRptTypeChange()">
+                <option value="all">📋 كل الصفوف</option>
+                <option value="grade">🏫 صف محدد</option>
+                <option value="student">👤 طالب محدد</option>
+              </select>
+            </div>
+            <div class="form-group" id="t-rpt-grade-group" style="margin:0;min-width:150px;display:none">
+              <label class="form-label" style="font-size:12px;margin-bottom:4px">الصف والشعبة</label>
+              <select id="t-rpt-grade" class="form-control">
+                <option value="">كل الصفوف</option>
+              </select>
+            </div>
+            <div class="form-group" id="t-rpt-student-group" style="margin:0;min-width:160px;display:none">
+              <label class="form-label" style="font-size:12px;margin-bottom:4px">اسم الطالب</label>
+              <input type="text" id="t-rpt-student" class="form-control" placeholder="أدخل الاسم أو جزءاً منه">
+            </div>
+            <div class="form-group" style="margin:0;min-width:130px">
+              <label class="form-label" style="font-size:12px;margin-bottom:4px">الحالة</label>
+              <select id="t-rpt-status" class="form-control">
+                <option value="">كل الحالات</option>
+                <option value="pending">في الانتظار</option>
+                <option value="inprogress">تحت الإجراء</option>
+                <option value="done">تم التواصل</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="generateTeacherReport()" style="margin-bottom:1px">🔍 عرض التقرير</button>
+          </div>
+
+          <!-- KPI التقرير -->
+          <div id="t-rpt-kpi" style="display:none;margin-bottom:16px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:90px;border:2px solid #e5e7eb;border-radius:10px;padding:10px 12px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#1a56db" id="t-rpt-k-total">0</div>
+                <div style="font-size:11px;color:#6b7280">إجمالي</div>
+              </div>
+              <div style="flex:1;min-width:90px;border:2px solid #0e9f6e;border-radius:10px;padding:10px 12px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#0e9f6e" id="t-rpt-k-done">0</div>
+                <div style="font-size:11px;color:#6b7280">تم التواصل</div>
+              </div>
+              <div style="flex:1;min-width:90px;border:2px solid #c27803;border-radius:10px;padding:10px 12px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#c27803" id="t-rpt-k-prog">0</div>
+                <div style="font-size:11px;color:#6b7280">تحت الإجراء</div>
+              </div>
+              <div style="flex:1;min-width:90px;border:2px solid #e02424;border-radius:10px;padding:10px 12px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#e02424" id="t-rpt-k-pend">0</div>
+                <div style="font-size:11px;color:#6b7280">انتظار</div>
+              </div>
+              <div style="flex:1;min-width:90px;border:2px solid #1a56db;border-radius:10px;padding:10px 12px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#1a56db" id="t-rpt-k-pct">0%</div>
+                <div style="font-size:11px;color:#6b7280">إنجاز</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- أزرار الإخراج -->
+          <div id="t-rpt-actions" style="display:none;margin-bottom:12px;display:none;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="teacherRptPrint()" style="border-color:#1a56db;color:#1a56db">🖨️ طباعة</button>
+            <button class="btn btn-outline btn-sm" onclick="teacherRptExcel()" style="border-color:#217346;color:#217346">📥 تصدير Excel</button>
+          </div>
+
+          <!-- جدول النتائج -->
+          <div id="t-rpt-table-wrap" style="display:none" class="table-wrapper">
+            <table id="t-rpt-table">
+              <thead id="t-rpt-thead"></thead>
+              <tbody id="t-rpt-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="t-rpt-empty" style="display:none;text-align:center;padding:30px;color:var(--gray-400)">
+            📭 لا توجد نتائج مطابقة
+          </div>
+        </div>
+      </div>
+
+      <!-- ملخص الصفوف -->
+      <div class="card" style="margin-top:24px">
+        <div class="card-header">
+          <div class="card-title">🗂️ ملخص طلباتي حسب الصف</div>
+          <button class="btn btn-outline btn-sm" onclick="teacherGradeReportPrint()" style="border-color:#1a56db;color:#1a56db">🖨️ طباعة</button>
+        </div>
+        <div id="teacher-grade-summary" style="padding:16px">
+          <p style="color:var(--gray-400);text-align:center">جاري التحميل...</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -949,6 +1182,10 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
         <div class="nav-item" onclick="showPage('analytics')" data-page="analytics">
           <span class="nav-icon">📈</span>
           <span>الإحصائيات والتقارير</span>
+        </div>
+        <div class="nav-item" onclick="showPage('reports')" data-page="reports">
+          <span class="nav-icon">🖨️</span>
+          <span>التقارير التفصيلية</span>
         </div>
         <div class="nav-section-title" style="margin-top:12px">الإعدادات</div>
         <div class="nav-item" onclick="showPage('staff')" data-page="staff">
@@ -1156,6 +1393,103 @@ const CONTACT_METHODS = ["هاتف", "واتساب", "حضوري", "بريد إ�
             </div>
             <canvas id="chart-completion" height="220"></canvas>
           </div>
+        </div>
+      </div>
+
+      <!-- ======================== صفحة: التقارير التفصيلية ======================== -->
+      <div class="page" id="page-reports">
+
+        <!-- فلاتر البحث -->
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header">
+            <div class="card-title">🔍 البحث وتصفية التقارير</div>
+          </div>
+          <div style="padding:16px">
+            <div class="form-row" style="margin-bottom:12px">
+              <div class="form-group">
+                <label class="form-label">نوع التقرير</label>
+                <select id="rpt-type" class="form-control" onchange="onReportTypeChange()">
+                  <option value="">— اختر نوع التقرير —</option>
+                  <option value="student">📘 تقرير طالب محدد</option>
+                  <option value="grade">🏫 تقرير صف / شعبة</option>
+                  <option value="teacher">👤 تقرير معلم</option>
+                  <option value="dept">🗂️ تقرير قسم</option>
+                  <option value="all">📋 تقرير شامل للمدرسة</option>
+                </select>
+              </div>
+              <div class="form-group" id="rpt-student-group" style="display:none">
+                <label class="form-label">اسم الطالب</label>
+                <input type="text" id="rpt-student-name" class="form-control" placeholder="أدخل اسم الطالب أو جزء منه">
+              </div>
+              <div class="form-group" id="rpt-grade-group" style="display:none">
+                <label class="form-label">الصف والشعبة</label>
+                <select id="rpt-grade" class="form-control">
+                  <option value="">كل الصفوف</option>
+                </select>
+              </div>
+              <div class="form-group" id="rpt-teacher-group" style="display:none">
+                <label class="form-label">المعلم</label>
+                <select id="rpt-teacher" class="form-control">
+                  <option value="">— اختر المعلم —</option>
+                </select>
+              </div>
+              <div class="form-group" id="rpt-dept-group" style="display:none">
+                <label class="form-label">القسم</label>
+                <select id="rpt-dept" class="form-control">
+                  <option value="">— اختر القسم —</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">من تاريخ</label>
+                <input type="date" id="rpt-date-from" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">إلى تاريخ</label>
+                <input type="date" id="rpt-date-to" class="form-control">
+              </div>
+              <div class="form-group">
+                <label class="form-label">الحالة</label>
+                <select id="rpt-status" class="form-control">
+                  <option value="">كل الحالات</option>
+                  <option value="pending">في الانتظار</option>
+                  <option value="inprogress">تحت الإجراء</option>
+                  <option value="done">تم التواصل</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="generateReport()">🔍 إنشاء التقرير</button>
+              <button class="btn btn-success" onclick="printReport()" id="rpt-print-btn" style="display:none">🖨️ طباعة</button>
+              <button class="btn btn-outline" onclick="exportReportExcel()" id="rpt-excel-btn" style="display:none" style="border-color:#217346;color:#217346">📥 تصدير Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- نتائج التقرير -->
+        <div id="rpt-result" style="display:none">
+          <!-- ملخص إحصائي -->
+          <div class="kpi-grid" id="rpt-kpi" style="margin-bottom:20px"></div>
+
+          <!-- الجدول -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" id="rpt-table-title">نتائج التقرير</div>
+              <div style="font-size:13px;color:var(--gray-500)" id="rpt-count"></div>
+            </div>
+            <div class="table-wrapper">
+              <table id="rpt-table">
+                <thead id="rpt-thead"></thead>
+                <tbody id="rpt-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="rpt-empty" style="display:none;text-align:center;padding:60px 20px">
+          <div style="font-size:48px;margin-bottom:16px">📭</div>
+          <p style="color:var(--gray-500)">لا توجد نتائج مطابقة للبحث</p>
         </div>
       </div>
 
@@ -1503,6 +1837,9 @@ function loadTeacherRequests() {
     // إضافة إلى allRequests حتى تعمل openRequestModal
     allRequests = reqs;
 
+    // تحديث ملخص الصفوف
+    if (typeof renderTeacherGradeSummary === 'function') renderTeacherGradeSummary(reqs);
+
     // فلتر الحالة
     if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
 
@@ -1569,6 +1906,9 @@ function loadTeacherRequests() {
 function renderTeacherTable(reqs, statusFilter) {
   // إضافة إلى allRequests حتى تعمل openRequestModal (مهم للجوال)
   allRequests = reqs;
+
+  // تحديث ملخص الصفوف
+  if (typeof renderTeacherGradeSummary === 'function') renderTeacherGradeSummary(reqs);
 
   if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
   const total   = reqs.length;
@@ -2477,6 +2817,7 @@ function showPage(pageId) {
     dashboard: ['لوحة المؤشرات',    'نظرة عامة على طلبات التواصل'],
     requests:  ['الطلبات الواردة',  'إدارة ومتابعة جميع الطلبات'],
     analytics: ['الإحصائيات',       'تقارير وتحليلات بيانية'],
+    reports:   ['التقارير التفصيلية','إنشاء وطباعة تقارير حسب الطالب أو الصف أو المعلم أو القسم'],
     staff:     ['إدارة الكادر',     'إضافة وتعديل الأقسام والموظفين'],
     settings:  ['الإعدادات',        'ضبط إعدادات النظام'],
   };
@@ -3499,6 +3840,854 @@ async function saveStaff() {
   } catch(e) {
     showToast('خطأ في الحفظ', 'error');
   }
+}
+
+// =========================================================
+// 📊 نظام التقارير الاحترافي
+// =========================================================
+
+// ---------- مساعدات ----------
+function rptStatusLabel(s) {
+  if (s === 'done')       return 'تم التواصل';
+  if (s === 'inprogress') return 'تحت الإجراء';
+  return 'في الانتظار';
+}
+
+function rptStatusColor(s) {
+  if (s === 'done')       return '#0e9f6e';
+  if (s === 'inprogress') return '#c27803';
+  return '#e02424';
+}
+
+function rptDateStr(v) {
+  if (!v) return '—';
+  const d = v?.toDate ? v.toDate() : new Date(v);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('ar-QA', { year:'numeric', month:'short', day:'numeric' });
+}
+
+// ---------- جلب كل الطلبات من Firestore ----------
+async function fetchAllRequestsForReport() {
+  if (!db) return allRequests;
+  try {
+    const snap = await db.collection('requests').orderBy('createdAt','desc').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e) {
+    return allRequests;
+  }
+}
+
+// ---------- تغيير نوع التقرير — إظهار / إخفاء الفلاتر ----------
+function onReportTypeChange() {
+  const type = document.getElementById('rpt-type').value;
+  ['student','grade','teacher','dept'].forEach(g => {
+    document.getElementById(`rpt-${g}-group`).style.display = 'none';
+  });
+  if (type === 'student')  document.getElementById('rpt-student-group').style.display = '';
+  if (type === 'grade')    { document.getElementById('rpt-grade-group').style.display = ''; fillRptGrades(); }
+  if (type === 'teacher')  { document.getElementById('rpt-teacher-group').style.display = ''; fillRptTeachers(); }
+  if (type === 'dept')     { document.getElementById('rpt-dept-group').style.display = ''; fillRptDepts(); }
+
+  document.getElementById('rpt-result').style.display  = 'none';
+  document.getElementById('rpt-empty').style.display   = 'none';
+  document.getElementById('rpt-print-btn').style.display = 'none';
+  document.getElementById('rpt-excel-btn').style.display = 'none';
+}
+
+function fillRptGrades() {
+  const sel = document.getElementById('rpt-grade');
+  if (sel.options.length > 1) return;
+  GRADES.forEach(g => SECTIONS.forEach(s => {
+    const o = document.createElement('option');
+    o.value = `${g}/${s}`;
+    o.textContent = `الصف ${g}/${s}`;
+    sel.appendChild(o);
+  }));
+}
+
+function fillRptTeachers() {
+  const sel = document.getElementById('rpt-teacher');
+  if (sel.options.length > 1) return;
+  if (typeof _fsStaff !== 'undefined' && _fsStaff.length > 0) {
+    _fsStaff.sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.email;
+      o.textContent = t.name;
+      sel.appendChild(o);
+    });
+  } else {
+    // من allRequests
+    const names = [...new Map(allRequests.map(r => [r.staffEmail, { email: r.staffEmail, name: r.staffName }])).values()];
+    names.sort((a,b) => (a.name||'').localeCompare(b.name||'','ar')).forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.email;
+      o.textContent = t.name || t.email;
+      sel.appendChild(o);
+    });
+  }
+}
+
+function fillRptDepts() {
+  const sel = document.getElementById('rpt-dept');
+  if (sel.options.length > 1) return;
+  if (typeof _fsDepts !== 'undefined' && _fsDepts.length > 0) {
+    _fsDepts.sort((a,b) => a.name.localeCompare(b.name,'ar')).forEach(d => {
+      const o = document.createElement('option');
+      o.value = d.name;
+      o.textContent = d.name;
+      sel.appendChild(o);
+    });
+  } else {
+    const depts = [...new Set(allRequests.map(r => r.department).filter(Boolean))].sort((a,b) => a.localeCompare(b,'ar'));
+    depts.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d;
+      sel.appendChild(o);
+    });
+  }
+}
+
+// ---------- إنشاء التقرير ----------
+let _rptData = [];
+let _rptTitle = '';
+let _rptMeta  = '';
+
+async function generateReport() {
+  const type       = document.getElementById('rpt-type').value;
+  const statusFil  = document.getElementById('rpt-status').value;
+  const dateFrom   = document.getElementById('rpt-date-from').value;
+  const dateTo     = document.getElementById('rpt-date-to').value;
+
+  if (!type) { showToast('اختر نوع التقرير أولاً', 'error'); return; }
+
+  showToast('⏳ جاري إنشاء التقرير...', '');
+  const all = await fetchAllRequestsForReport();
+
+  let reqs = [...all];
+
+  // فلتر الحالة
+  if (statusFil) reqs = reqs.filter(r => r.status === statusFil);
+
+  // فلتر التاريخ
+  if (dateFrom) {
+    const from = new Date(dateFrom);
+    reqs = reqs.filter(r => {
+      const d = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt||0);
+      return d >= from;
+    });
+  }
+  if (dateTo) {
+    const to = new Date(dateTo); to.setHours(23,59,59);
+    reqs = reqs.filter(r => {
+      const d = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt||0);
+      return d <= to;
+    });
+  }
+
+  // فلتر النوع
+  if (type === 'student') {
+    const name = document.getElementById('rpt-student-name').value.trim();
+    if (!name) { showToast('أدخل اسم الطالب', 'error'); return; }
+    reqs = reqs.filter(r => r.studentName?.includes(name));
+    _rptTitle = `تقرير الطالب: ${name}`;
+    _rptMeta  = `جميع طلبات التواصل المتعلقة بالطالب "${name}"`;
+  } else if (type === 'grade') {
+    const grade = document.getElementById('rpt-grade').value;
+    if (grade) {
+      const [g, s] = grade.split('/');
+      reqs = reqs.filter(r => r.grade === g && r.section === s);
+      _rptTitle = `تقرير الصف: ${grade}`;
+      _rptMeta  = `جميع طلبات التواصل للصف ${grade}`;
+    } else {
+      _rptTitle = 'تقرير جميع الصفوف';
+      _rptMeta  = 'جميع طلبات التواصل مرتبة حسب الصف';
+    }
+  } else if (type === 'teacher') {
+    const email = document.getElementById('rpt-teacher').value;
+    const name  = document.getElementById('rpt-teacher').selectedOptions[0]?.textContent;
+    if (!email) { showToast('اختر المعلم', 'error'); return; }
+    reqs = reqs.filter(r => r.staffEmail === email);
+    _rptTitle = `تقرير المعلم: ${name}`;
+    _rptMeta  = `جميع طلبات التواصل الموجهة إلى ${name}`;
+  } else if (type === 'dept') {
+    const dept = document.getElementById('rpt-dept').value;
+    if (!dept) { showToast('اختر القسم', 'error'); return; }
+    reqs = reqs.filter(r => r.department === dept);
+    _rptTitle = `تقرير القسم: ${dept}`;
+    _rptMeta  = `جميع طلبات التواصل لقسم ${dept}`;
+  } else {
+    _rptTitle = 'التقرير الشامل للمدرسة';
+    _rptMeta  = 'جميع طلبات التواصل في المدرسة';
+  }
+
+  _rptData = reqs;
+  renderReportTable(reqs, type);
+}
+
+function renderReportTable(reqs, type) {
+  const result = document.getElementById('rpt-result');
+  const empty  = document.getElementById('rpt-empty');
+
+  if (reqs.length === 0) {
+    result.style.display = 'none';
+    empty.style.display  = '';
+    document.getElementById('rpt-print-btn').style.display = 'none';
+    document.getElementById('rpt-excel-btn').style.display = 'none';
+    return;
+  }
+
+  empty.style.display  = 'none';
+  result.style.display = '';
+  document.getElementById('rpt-print-btn').style.display = '';
+  document.getElementById('rpt-excel-btn').style.display = '';
+
+  // KPI
+  const total  = reqs.length;
+  const done   = reqs.filter(r => r.status === 'done').length;
+  const prog   = reqs.filter(r => r.status === 'inprogress').length;
+  const pend   = reqs.filter(r => r.status === 'pending').length;
+  const pct    = total ? Math.round(done / total * 100) : 0;
+
+  document.getElementById('rpt-kpi').innerHTML = `
+    <div class="kpi-card"><div class="kpi-icon blue">📋</div>
+      <div><div class="kpi-value">${total}</div><div class="kpi-label">إجمالي الطلبات</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon green">✅</div>
+      <div><div class="kpi-value">${done}</div><div class="kpi-label">تم التواصل</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon amber">⏳</div>
+      <div><div class="kpi-value">${prog}</div><div class="kpi-label">تحت الإجراء</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon red" style="background:#fde8e8">🔴</div>
+      <div><div class="kpi-value">${pend}</div><div class="kpi-label">في الانتظار</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon green">📊</div>
+      <div><div class="kpi-value">${pct}%</div><div class="kpi-label">نسبة الإنجاز</div></div></div>
+  `;
+
+  document.getElementById('rpt-table-title').textContent = _rptTitle;
+  document.getElementById('rpt-count').textContent = `${total} طلب`;
+
+  // رأس الجدول
+  document.getElementById('rpt-thead').innerHTML = `<tr>
+    <th>#</th>
+    <th>رقم الطلب</th>
+    <th>ولي الأمر</th>
+    <th>الطالب</th>
+    <th>الصف</th>
+    ${type !== 'teacher' ? '<th>المعلم</th>' : ''}
+    ${type !== 'dept' && type !== 'teacher' ? '<th>القسم</th>' : ''}
+    <th>الموضوع</th>
+    <th>التاريخ</th>
+    <th>الحالة</th>
+    <th>تاريخ التواصل</th>
+    <th>طريقة التواصل</th>
+    <th>الملاحظات</th>
+  </tr>`;
+
+  document.getElementById('rpt-tbody').innerHTML = reqs.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber||'—'}</code></td>
+      <td>${r.parentName||'—'}<br><small style="color:var(--gray-400)">${r.phone||''}</small></td>
+      <td>${r.studentName||'—'}</td>
+      <td>الصف ${r.grade||''}/${r.section||''}</td>
+      ${type !== 'teacher' ? `<td>${r.staffName||'—'}</td>` : ''}
+      ${type !== 'dept' && type !== 'teacher' ? `<td>${r.department||'—'}</td>` : ''}
+      <td style="max-width:140px">${r.subject||'—'}</td>
+      <td style="white-space:nowrap;font-size:12px">${rptDateStr(r.createdAt)}</td>
+      <td><span style="background:${rptStatusColor(r.status)}22;color:${rptStatusColor(r.status)};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600">${rptStatusLabel(r.status)}</span></td>
+      <td style="white-space:nowrap;font-size:12px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
+      <td>${r.contactMethod||'—'}</td>
+      <td style="font-size:12px;max-width:160px">${r.notes||'—'}</td>
+    </tr>
+  `).join('');
+
+  showToast(`✅ تم إنشاء التقرير — ${reqs.length} طلب`, 'success');
+}
+
+// ---------- طباعة التقرير (أدمن) ----------
+function printReport() {
+  if (_rptData.length === 0) { showToast('لا توجد بيانات للطباعة', 'error'); return; }
+  const type = document.getElementById('rpt-type').value;
+  _doPrint(_rptData, _rptTitle, _rptMeta, type);
+}
+
+function _doPrint(reqs, title, meta, type) {
+  const total = reqs.length;
+  const done  = reqs.filter(r => r.status === 'done').length;
+  const prog  = reqs.filter(r => r.status === 'inprogress').length;
+  const pend  = reqs.filter(r => r.status === 'pending').length;
+  const now   = new Date().toLocaleDateString('ar-QA', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  const showTeacher = (type !== 'teacher');
+  const showDept    = (type !== 'dept' && type !== 'teacher');
+
+  const rows = reqs.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;font-size:11px">${r.trackingNumber||'—'}</td>
+      <td>${r.parentName||'—'}<br><span style="font-size:11px;color:#666">${r.phone||''}</span></td>
+      <td>${r.studentName||'—'}</td>
+      <td>${r.grade||''}/${r.section||''}</td>
+      ${showTeacher ? `<td>${r.staffName||'—'}</td>` : ''}
+      ${showDept    ? `<td>${r.department||'—'}</td>` : ''}
+      <td>${r.subject||'—'}</td>
+      <td style="white-space:nowrap;font-size:11px">${rptDateStr(r.createdAt)}</td>
+      <td style="color:${rptStatusColor(r.status)};font-weight:600">${rptStatusLabel(r.status)}</td>
+      <td style="font-size:11px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
+      <td>${r.contactMethod||'—'}</td>
+      <td style="font-size:11px">${r.notes||'—'}</td>
+    </tr>
+  `).join('');
+
+  let area = document.getElementById('print-area');
+  if (!area) {
+    area = document.createElement('div');
+    area.id = 'print-area';
+    document.body.appendChild(area);
+  }
+
+  area.innerHTML = `
+    <div style="padding:20px;max-width:1100px;margin:0 auto">
+      <div class="print-header">
+        <div class="print-school-info">
+          <div class="print-school-name">مدرسة حمزة بن عبد المطلب للبنين</div>
+          <div class="print-ministry">وزارة التعليم والتعليم العالي — دولة قطر</div>
+          <div style="font-size:12px;color:#888;margin-top:4px">نظام تواصل أولياء الأمور</div>
+        </div>
+        <div class="print-logo">🏫</div>
+      </div>
+
+      <div class="print-report-title">${title}</div>
+      <div class="print-report-meta">${meta}</div>
+
+      <div class="print-kpi-row">
+        <div class="print-kpi-box">
+          <div class="print-kpi-num">${total}</div>
+          <div class="print-kpi-lbl">إجمالي الطلبات</div>
+        </div>
+        <div class="print-kpi-box" style="border-color:#0e9f6e">
+          <div class="print-kpi-num" style="color:#0e9f6e">${done}</div>
+          <div class="print-kpi-lbl">تم التواصل</div>
+        </div>
+        <div class="print-kpi-box" style="border-color:#c27803">
+          <div class="print-kpi-num" style="color:#c27803">${prog}</div>
+          <div class="print-kpi-lbl">تحت الإجراء</div>
+        </div>
+        <div class="print-kpi-box" style="border-color:#e02424">
+          <div class="print-kpi-num" style="color:#e02424">${pend}</div>
+          <div class="print-kpi-lbl">في الانتظار</div>
+        </div>
+        <div class="print-kpi-box" style="border-color:#1a56db">
+          <div class="print-kpi-num" style="color:#1a56db">${total ? Math.round(done/total*100) : 0}%</div>
+          <div class="print-kpi-lbl">نسبة الإنجاز</div>
+        </div>
+      </div>
+
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>رقم الطلب</th>
+            <th>ولي الأمر</th>
+            <th>الطالب</th>
+            <th>الصف</th>
+            ${showTeacher ? '<th>المعلم</th>' : ''}
+            ${showDept    ? '<th>القسم</th>'  : ''}
+            <th>الموضوع</th>
+            <th>التاريخ</th>
+            <th>الحالة</th>
+            <th>تاريخ التواصل</th>
+            <th>الطريقة</th>
+            <th>الملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <div class="print-sign-area">
+        <div class="print-sign-box">
+          <div class="print-sign-line">توقيع النائب الأكاديمي</div>
+        </div>
+        <div class="print-sign-box">
+          <div class="print-sign-line">توقيع مدير المدرسة</div>
+        </div>
+      </div>
+
+      <div class="print-footer">
+        <div>تاريخ الطباعة: ${now}</div>
+        <div>إجمالي: ${total} طلب</div>
+        <div>نظام تواصل أولياء الأمور — مدرسة حمزة بن عبد المطلب</div>
+      </div>
+    </div>
+  `;
+
+  area.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { area.style.display = 'none'; }, 1000);
+  }, 200);
+}
+
+// ---------- تصدير Excel للتقرير ----------
+function exportReportExcel() {
+  if (_rptData.length === 0) { showToast('لا توجد بيانات للتصدير', 'error'); return; }
+
+  const rows = _rptData.map((r, i) => ({
+    '#':              i + 1,
+    'رقم الطلب':     r.trackingNumber || '',
+    'ولي الأمر':     r.parentName     || '',
+    'رقم الهاتف':    r.phone          || '',
+    'الطالب':        r.studentName    || '',
+    'الصف':          `${r.grade}/${r.section}`,
+    'المعلم':        r.staffName      || '',
+    'القسم':         r.department     || '',
+    'الموضوع':       r.subject        || '',
+    'تاريخ الطلب':   rptDateStr(r.createdAt),
+    'الحالة':        rptStatusLabel(r.status),
+    'تاريخ التواصل': r.contactDate ? rptDateStr(r.contactDate) : '',
+    'طريقة التواصل': r.contactMethod  || '',
+    'الملاحظات':     r.notes          || '',
+    'نفّذ بواسطة':   r.completedBy    || '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
+
+  const fname = `${_rptTitle.replace(/[/:]/g,'_')}_${new Date().toLocaleDateString('ar-QA').replace(/\//g,'-')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast(`📥 تم تصدير ${rows.length} سجل`, 'success');
+}
+
+// ---------- تحديث showPage لصفحة التقارير ----------
+const _origShowPage = showPage;
+showPage = function(pageId) {
+  _origShowPage(pageId);
+  if (pageId === 'reports') {
+    document.getElementById('page-title').textContent    = 'التقارير التفصيلية';
+    document.getElementById('page-subtitle').textContent = 'إنشاء وطباعة تقارير حسب الطالب أو الصف أو المعلم أو القسم';
+    // تهيئة تواريخ البحث
+    if (!document.getElementById('rpt-date-from').value) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 3);
+      document.getElementById('rpt-date-from').value = d.toISOString().split('T')[0];
+    }
+  }
+};
+
+// =========================================================
+// تقارير واجهة المعلم
+// =========================================================
+
+// ملخص الطلبات حسب الصف
+function renderTeacherGradeSummary(reqs) {
+  const container = document.getElementById('teacher-grade-summary');
+  if (!container) return;
+
+  if (reqs.length === 0) {
+    container.innerHTML = '<p style="color:var(--gray-400);text-align:center">لا توجد طلبات</p>';
+    return;
+  }
+
+  // تجميع حسب الصف/الشعبة
+  const gradeMap = {};
+  reqs.forEach(r => {
+    const key = `الصف ${r.grade||''}/${r.section||''}`;
+    if (!gradeMap[key]) gradeMap[key] = { total:0, done:0, inprog:0, pend:0, requests:[] };
+    gradeMap[key].total++;
+    gradeMap[key].requests.push(r);
+    if (r.status === 'done')       gradeMap[key].done++;
+    else if (r.status === 'inprogress') gradeMap[key].inprog++;
+    else                           gradeMap[key].pend++;
+  });
+
+  const keys = Object.keys(gradeMap).sort();
+  container.innerHTML = keys.map(g => {
+    const d = gradeMap[g];
+    const pct = d.total ? Math.round(d.done / d.total * 100) : 0;
+    return `
+      <div style="border:1px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-weight:700;font-size:15px;color:var(--primary)">${g}</div>
+          <div style="font-size:13px;color:var(--gray-500)">${d.total} طلب</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <span style="background:#e3f9ef;color:#0e9f6e;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">✅ تم: ${d.done}</span>
+          <span style="background:#fdf3c0;color:#c27803;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">⏳ إجراء: ${d.inprog}</span>
+          <span style="background:#fde8e8;color:#e02424;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600">🔴 انتظار: ${d.pend}</span>
+        </div>
+        <div style="background:var(--gray-100);border-radius:20px;height:8px;overflow:hidden">
+          <div style="background:var(--success);height:100%;width:${pct}%;transition:width 0.5s;border-radius:20px"></div>
+        </div>
+        <div style="font-size:11px;color:var(--gray-500);margin-top:4px;text-align:left">${pct}% إنجاز</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// طباعة تقرير المعلم
+function teacherPrintReport() {
+  if (allRequests.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+  const staff = window._currentStaff;
+  const title = `تقرير المعلم: ${staff?.name || ''}`;
+  const meta  = `جميع طلبات التواصل الواردة إلى ${staff?.name || ''} — المادة: ${staff?.subject || ''}`;
+  _doPrint(allRequests, title, meta, 'teacher');
+}
+
+// تصدير Excel للمعلم
+function teacherExportExcel() {
+  if (allRequests.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+  const staff = window._currentStaff;
+  _rptData  = allRequests;
+  _rptTitle = `تقرير_${staff?.name || 'المعلم'}`;
+  exportReportExcel();
+}
+
+// طباعة ملخص الصفوف للمعلم
+function teacherGradeReportPrint() {
+  if (allRequests.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+  const staff = window._currentStaff;
+
+  // تجميع حسب الصف
+  const gradeMap = {};
+  allRequests.forEach(r => {
+    const key = `الصف ${r.grade||''}/${r.section||''}`;
+    if (!gradeMap[key]) gradeMap[key] = [];
+    gradeMap[key].push(r);
+  });
+
+  const keys = Object.keys(gradeMap).sort();
+  let rows = '';
+  keys.forEach(g => {
+    const reqs = gradeMap[g];
+    const done = reqs.filter(r => r.status === 'done').length;
+    const prog = reqs.filter(r => r.status === 'inprogress').length;
+    const pend = reqs.filter(r => r.status === 'pending').length;
+    rows += `
+      <tr style="background:#e8f0fe">
+        <td colspan="7" style="font-weight:700;color:#1a56db;padding:8px 10px">${g} — إجمالي: ${reqs.length} طلب | تم: ${done} | إجراء: ${prog} | انتظار: ${pend}</td>
+      </tr>
+    `;
+    reqs.forEach((r, i) => {
+      rows += `<tr>
+        <td>${i+1}</td>
+        <td>${r.trackingNumber||'—'}</td>
+        <td>${r.parentName||'—'}<br><span style="font-size:11px;color:#666">${r.phone||''}</span></td>
+        <td>${r.studentName||'—'}</td>
+        <td>${r.subject||'—'}</td>
+        <td style="color:${rptStatusColor(r.status)};font-weight:600">${rptStatusLabel(r.status)}</td>
+        <td style="font-size:11px">${r.notes||'—'}</td>
+      </tr>`;
+    });
+  });
+
+  const now = new Date().toLocaleDateString('ar-QA', { year:'numeric', month:'long', day:'numeric' });
+  let area = document.getElementById('print-area');
+  if (!area) { area = document.createElement('div'); area.id='print-area'; document.body.appendChild(area); }
+
+  area.innerHTML = `
+    <div style="padding:20px;max-width:1000px;margin:0 auto">
+      <div class="print-header">
+        <div class="print-school-info">
+          <div class="print-school-name">مدرسة حمزة بن عبد المطلب للبنين</div>
+          <div class="print-ministry">وزارة التعليم والتعليم العالي — دولة قطر</div>
+        </div>
+        <div class="print-logo">🏫</div>
+      </div>
+      <div class="print-report-title">تقرير المعلم: ${staff?.name||''}</div>
+      <div class="print-report-meta">المادة: ${staff?.subject||''} | جميع الصفوف | ${now}</div>
+
+      <div class="print-kpi-row">
+        <div class="print-kpi-box"><div class="print-kpi-num">${allRequests.length}</div><div class="print-kpi-lbl">إجمالي</div></div>
+        <div class="print-kpi-box" style="border-color:#0e9f6e"><div class="print-kpi-num" style="color:#0e9f6e">${allRequests.filter(r=>r.status==='done').length}</div><div class="print-kpi-lbl">تم</div></div>
+        <div class="print-kpi-box" style="border-color:#c27803"><div class="print-kpi-num" style="color:#c27803">${allRequests.filter(r=>r.status==='inprogress').length}</div><div class="print-kpi-lbl">إجراء</div></div>
+        <div class="print-kpi-box" style="border-color:#e02424"><div class="print-kpi-num" style="color:#e02424">${allRequests.filter(r=>r.status==='pending').length}</div><div class="print-kpi-lbl">انتظار</div></div>
+        <div class="print-kpi-box" style="border-color:#1a56db"><div class="print-kpi-num" style="color:#1a56db">${keys.length}</div><div class="print-kpi-lbl">صف</div></div>
+      </div>
+
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>رقم الطلب</th><th>ولي الأمر</th><th>الطالب</th>
+          <th>الموضوع</th><th>الحالة</th><th>الملاحظات</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <div class="print-sign-area">
+        <div class="print-sign-box"><div class="print-sign-line">توقيع المعلم: ${staff?.name||''}</div></div>
+        <div class="print-sign-box"><div class="print-sign-line">توقيع النائب الأكاديمي</div></div>
+      </div>
+
+      <div class="print-footer">
+        <div>تاريخ الطباعة: ${now}</div>
+        <div>إجمالي: ${allRequests.length} طلب في ${keys.length} صف</div>
+      </div>
+    </div>
+  `;
+
+  area.style.display = 'block';
+  setTimeout(() => { window.print(); setTimeout(() => { area.style.display='none'; }, 1000); }, 200);
+}
+
+// =========================================================
+// تقارير المعلم التفصيلية (طالب / صف / كل الصفوف)
+// =========================================================
+
+let _tRptData  = [];
+let _tRptTitle = '';
+let _tRptMeta  = '';
+
+function onTeacherRptTypeChange() {
+  const type = document.getElementById('t-rpt-type').value;
+  const gradeGrp   = document.getElementById('t-rpt-grade-group');
+  const studentGrp = document.getElementById('t-rpt-student-group');
+
+  gradeGrp.style.display   = (type === 'grade')   ? '' : 'none';
+  studentGrp.style.display  = (type === 'student') ? '' : 'none';
+
+  if (type === 'grade') {
+    const sel = document.getElementById('t-rpt-grade');
+    // مسح القديم وإعادة البناء من الطلبات الفعلية
+    while (sel.options.length > 1) sel.remove(1);
+    const grades = [...new Set(allRequests.map(r => `${r.grade||''}/${r.section||''}`))]
+      .filter(Boolean).sort((a,b) => a.localeCompare(b,'ar'));
+    grades.forEach(g => {
+      const o = document.createElement('option');
+      o.value = g; o.textContent = `الصف ${g}`; sel.appendChild(o);
+    });
+  }
+
+  document.getElementById('t-rpt-kpi').style.display        = 'none';
+  document.getElementById('t-rpt-actions').style.display    = 'none';
+  document.getElementById('t-rpt-table-wrap').style.display = 'none';
+  document.getElementById('t-rpt-empty').style.display      = 'none';
+}
+
+function generateTeacherReport() {
+  const type      = document.getElementById('t-rpt-type').value;
+  const statusFil = document.getElementById('t-rpt-status').value;
+  const staff     = window._currentStaff;
+
+  let reqs = [...allRequests];
+  if (statusFil) reqs = reqs.filter(r => r.status === statusFil);
+
+  if (type === 'grade') {
+    const gradeVal = document.getElementById('t-rpt-grade').value;
+    if (gradeVal) {
+      const [g, s] = gradeVal.split('/');
+      reqs = reqs.filter(r => r.grade === g && r.section === s);
+      _tRptTitle = `تقرير ${staff?.name||''} — الصف ${gradeVal}`;
+      _tRptMeta  = `المادة: ${staff?.subject||''} | الصف ${gradeVal}`;
+    } else {
+      _tRptTitle = `تقرير ${staff?.name||''} — كل الصفوف`;
+      _tRptMeta  = `المادة: ${staff?.subject||''} | جميع الصفوف`;
+    }
+  } else if (type === 'student') {
+    const name = (document.getElementById('t-rpt-student').value||'').trim();
+    if (!name) { showToast('أدخل اسم الطالب', 'error'); return; }
+    reqs = reqs.filter(r => (r.studentName||'').includes(name));
+    _tRptTitle = `تقرير الطالب: ${name}`;
+    _tRptMeta  = `المعلم: ${staff?.name||''} | المادة: ${staff?.subject||''}`;
+  } else {
+    _tRptTitle = `تقرير ${staff?.name||''} — كل الصفوف`;
+    _tRptMeta  = `المادة: ${staff?.subject||''} | جميع الصفوف`;
+  }
+
+  _tRptData = reqs;
+  renderTeacherReportTable(reqs, type);
+}
+
+function renderTeacherReportTable(reqs, type) {
+  const kpiEl     = document.getElementById('t-rpt-kpi');
+  const actEl     = document.getElementById('t-rpt-actions');
+  const tableWrap = document.getElementById('t-rpt-table-wrap');
+  const emptyEl   = document.getElementById('t-rpt-empty');
+
+  if (reqs.length === 0) {
+    kpiEl.style.display = actEl.style.display = tableWrap.style.display = 'none';
+    emptyEl.style.display = ''; return;
+  }
+  emptyEl.style.display = 'none';
+
+  // KPI
+  const total = reqs.length;
+  const done  = reqs.filter(r => r.status === 'done').length;
+  const prog  = reqs.filter(r => r.status === 'inprogress').length;
+  const pend  = reqs.filter(r => r.status === 'pending').length;
+  document.getElementById('t-rpt-k-total').textContent = total;
+  document.getElementById('t-rpt-k-done').textContent  = done;
+  document.getElementById('t-rpt-k-prog').textContent  = prog;
+  document.getElementById('t-rpt-k-pend').textContent  = pend;
+  document.getElementById('t-rpt-k-pct').textContent   = (total ? Math.round(done/total*100) : 0) + '%';
+  kpiEl.style.display = '';
+  actEl.style.display = 'flex';
+
+  // هل نعرض مجموعات الصفوف؟
+  const gradeVal = type === 'grade' ? document.getElementById('t-rpt-grade').value : '';
+  const grouped  = (type === 'all') || (type === 'grade' && !gradeVal);
+
+  document.getElementById('t-rpt-thead').innerHTML = `<tr>
+    <th>#</th><th>رقم الطلب</th><th>ولي الأمر / هاتف</th><th>الطالب</th>
+    ${grouped ? '' : '<th>الصف</th>'}
+    <th>الموضوع</th><th>التاريخ</th><th>الحالة</th>
+    <th>تاريخ التواصل</th><th>الطريقة</th><th>الملاحظات</th>
+  </tr>`;
+
+  let body = '';
+  if (grouped) {
+    const map = {};
+    reqs.forEach(r => {
+      const k = `${r.grade||''}/${r.section||''}`;
+      if (!map[k]) map[k] = [];
+      map[k].push(r);
+    });
+    let idx = 0;
+    Object.keys(map).sort((a,b)=>a.localeCompare(b,'ar')).forEach(gk => {
+      const gr = map[gk];
+      const gd = gr.filter(r=>r.status==='done').length;
+      const gp = gr.filter(r=>r.status==='inprogress').length;
+      const gn = gr.filter(r=>r.status==='pending').length;
+      body += `<tr style="background:#e8f0fe"><td colspan="10" style="font-weight:700;color:#1a56db;padding:8px 12px">
+        📚 الصف ${gk} — إجمالي: ${gr.length} | ✅ تم: ${gd} | ⏳ إجراء: ${gp} | 🔴 انتظار: ${gn}
+      </td></tr>`;
+      gr.forEach(r => { idx++; body += _tRptRow(r, idx, true); });
+    });
+  } else {
+    reqs.forEach((r, i) => { body += _tRptRow(r, i+1, false); });
+  }
+
+  document.getElementById('t-rpt-tbody').innerHTML = body;
+  tableWrap.style.display = '';
+  showToast(`✅ ${reqs.length} طلب`, 'success');
+}
+
+function _tRptRow(r, i, hideGrade) {
+  return `<tr>
+    <td>${i}</td>
+    <td><code style="font-size:11px;color:var(--primary)">${r.trackingNumber||'—'}</code></td>
+    <td>${r.parentName||'—'}<br><small style="color:var(--gray-400)">${r.phone||''}</small></td>
+    <td><strong>${r.studentName||'—'}</strong></td>
+    ${hideGrade ? '' : `<td>الصف ${r.grade||''}/${r.section||''}</td>`}
+    <td style="max-width:120px;font-size:13px">${r.subject||'—'}</td>
+    <td style="white-space:nowrap;font-size:12px">${rptDateStr(r.createdAt)}</td>
+    <td><span style="background:${rptStatusColor(r.status)}22;color:${rptStatusColor(r.status)};padding:2px 8px;border-radius:20px;font-size:12px;font-weight:600">${rptStatusLabel(r.status)}</span></td>
+    <td style="white-space:nowrap;font-size:12px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
+    <td style="font-size:12px">${r.contactMethod||'—'}</td>
+    <td style="font-size:12px;max-width:140px">${r.notes||'—'}</td>
+  </tr>`;
+}
+
+// طباعة تقرير المعلم التفصيلي
+function teacherRptPrint() {
+  if (_tRptData.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+  const type  = document.getElementById('t-rpt-type').value;
+  const staff = window._currentStaff;
+  const gradeVal = type === 'grade' ? document.getElementById('t-rpt-grade').value : '';
+  const grouped  = (type === 'all') || (type === 'grade' && !gradeVal);
+  const now   = new Date().toLocaleDateString('ar-QA', { year:'numeric', month:'long', day:'numeric' });
+
+  const total = _tRptData.length;
+  const done  = _tRptData.filter(r=>r.status==='done').length;
+  const prog  = _tRptData.filter(r=>r.status==='inprogress').length;
+  const pend  = _tRptData.filter(r=>r.status==='pending').length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+
+  let rows = '';
+  if (grouped) {
+    const map = {};
+    _tRptData.forEach(r => { const k=`${r.grade||''}/${r.section||''}`; if(!map[k])map[k]=[]; map[k].push(r); });
+    let idx = 0;
+    Object.keys(map).sort((a,b)=>a.localeCompare(b,'ar')).forEach(gk => {
+      const gr = map[gk];
+      const gd=gr.filter(r=>r.status==='done').length, gp=gr.filter(r=>r.status==='inprogress').length, gn=gr.filter(r=>r.status==='pending').length;
+      rows += `<tr style="background:#e8f0fe"><td colspan="8" style="font-weight:700;color:#1a56db;padding:7px 10px">الصف ${gk} — إجمالي: ${gr.length} | تم: ${gd} | إجراء: ${gp} | انتظار: ${gn}</td></tr>`;
+      gr.forEach(r => { idx++;
+        rows += `<tr><td>${idx}</td><td style="font-size:10px;font-family:monospace">${r.trackingNumber||'—'}</td>
+        <td>${r.parentName||'—'}<br><span style="font-size:10px;color:#666">${r.phone||''}</span></td>
+        <td>${r.studentName||'—'}</td><td>${r.subject||'—'}</td>
+        <td style="color:${rptStatusColor(r.status)};font-weight:600;font-size:12px">${rptStatusLabel(r.status)}</td>
+        <td style="font-size:11px">${rptDateStr(r.createdAt)}</td><td style="font-size:11px">${r.notes||'—'}</td></tr>`;
+      });
+    });
+  } else {
+    _tRptData.forEach((r,i) => {
+      rows += `<tr><td>${i+1}</td><td style="font-size:10px;font-family:monospace">${r.trackingNumber||'—'}</td>
+      <td>${r.parentName||'—'}<br><span style="font-size:10px;color:#666">${r.phone||''}</span></td>
+      <td>${r.studentName||'—'}</td>
+      ${grouped ? '' : `<td>الصف ${r.grade||''}/${r.section||''}</td>`}
+      <td>${r.subject||'—'}</td>
+      <td style="color:${rptStatusColor(r.status)};font-weight:600;font-size:12px">${rptStatusLabel(r.status)}</td>
+      <td style="font-size:11px">${rptDateStr(r.createdAt)}</td><td style="font-size:11px">${r.notes||'—'}</td></tr>`;
+    });
+  }
+
+  let area = document.getElementById('print-area');
+  if (!area) { area = document.createElement('div'); area.id='print-area'; document.body.appendChild(area); }
+
+  area.innerHTML = `
+    <div style="padding:20px;max-width:1050px;margin:0 auto">
+      <div class="print-header">
+        <div class="print-school-info">
+          <div class="print-school-name">مدرسة حمزة بن عبد المطلب للبنين</div>
+          <div class="print-ministry">وزارة التعليم والتعليم العالي — دولة قطر</div>
+        </div>
+        <div class="print-logo">🏫</div>
+      </div>
+      <div class="print-report-title">${_tRptTitle}</div>
+      <div class="print-report-meta">${_tRptMeta} | تاريخ الطباعة: ${now}</div>
+      <div class="print-kpi-row">
+        <div class="print-kpi-box"><div class="print-kpi-num">${total}</div><div class="print-kpi-lbl">إجمالي</div></div>
+        <div class="print-kpi-box" style="border-color:#0e9f6e"><div class="print-kpi-num" style="color:#0e9f6e">${done}</div><div class="print-kpi-lbl">تم</div></div>
+        <div class="print-kpi-box" style="border-color:#c27803"><div class="print-kpi-num" style="color:#c27803">${prog}</div><div class="print-kpi-lbl">إجراء</div></div>
+        <div class="print-kpi-box" style="border-color:#e02424"><div class="print-kpi-num" style="color:#e02424">${pend}</div><div class="print-kpi-lbl">انتظار</div></div>
+        <div class="print-kpi-box" style="border-color:#1a56db"><div class="print-kpi-num" style="color:#1a56db">${pct}%</div><div class="print-kpi-lbl">إنجاز</div></div>
+      </div>
+      <table class="print-table">
+        <thead><tr>
+          <th>#</th><th>رقم الطلب</th><th>ولي الأمر</th><th>الطالب</th>
+          ${grouped ? '' : '<th>الصف</th>'}
+          <th>الموضوع</th><th>الحالة</th><th>تاريخ الطلب</th><th>الملاحظات</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="print-sign-area">
+        <div class="print-sign-box"><div class="print-sign-line">توقيع المعلم: ${staff?.name||''}</div></div>
+        <div class="print-sign-box"><div class="print-sign-line">توقيع النائب الأكاديمي</div></div>
+      </div>
+      <div class="print-footer">
+        <div>تاريخ الطباعة: ${now}</div>
+        <div>${total} طلب</div>
+        <div>مدرسة حمزة بن عبد المطلب</div>
+      </div>
+    </div>`;
+
+  area.style.display = 'block';
+  setTimeout(() => { window.print(); setTimeout(() => { area.style.display='none'; }, 1000); }, 200);
+}
+
+// تصدير Excel لتقارير المعلم
+function teacherRptExcel() {
+  if (_tRptData.length === 0) { showToast('لا توجد بيانات', 'error'); return; }
+  const rows = _tRptData.map((r, i) => ({
+    '#':              i + 1,
+    'رقم الطلب':     r.trackingNumber || '',
+    'ولي الأمر':     r.parentName     || '',
+    'رقم الهاتف':    r.phone          || '',
+    'الطالب':        r.studentName    || '',
+    'الصف':          `${r.grade||''}/${r.section||''}`,
+    'الموضوع':       r.subject        || '',
+    'تاريخ الطلب':   rptDateStr(r.createdAt),
+    'الحالة':        rptStatusLabel(r.status),
+    'تاريخ التواصل': r.contactDate ? rptDateStr(r.contactDate) : '',
+    'طريقة التواصل': r.contactMethod  || '',
+    'الملاحظات':     r.notes          || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = Object.keys(rows[0]).map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
+  const fname = `${(_tRptTitle||'تقرير').replace(/[/:*?\\[\]]/g,'_')}_${new Date().toLocaleDateString('ar-QA').replace(/\//g,'-')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  showToast(`📥 تم تصدير ${rows.length} سجل`, 'success');
 }
 
 // -------------------------------------------------------
