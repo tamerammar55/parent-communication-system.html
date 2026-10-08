@@ -749,32 +749,42 @@ tbody td { padding: 13px 16px; color: var(--gray-700); vertical-align: middle; }
 }
 
 .print-table td {
-  padding: 6px 6px;
+  padding: 5px 5px;
   border: 1px solid #e5e7eb;
   vertical-align: top;
-  word-break: break-word;     /* كسر الكلمات الطويلة */
-  overflow-wrap: break-word;  /* ضمان الاحتواء */
-  white-space: normal !important;  /* إلغاء nowrap في الطباعة */
-  max-width: 0;               /* مع table-layout:fixed يجبر التقليص */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal !important;
+  max-width: 0;
+  overflow: hidden;
+}
+/* تقييد ارتفاع خلايا النصوص الطويلة */
+.print-table td.col-notes,
+.print-table td.col-subj {
+  max-height: 80px;
+  overflow: hidden;
+  display: table-cell;
+  position: relative;
 }
 
 .print-table tr:nth-child(even) td { background: #f9fafb; }
 
 /* حجم أعمدة جدول الطباعة */
 @media print {
-  .print-table { font-size: 10px !important; }
-  .print-table th, .print-table td { padding: 5px 4px !important; }
+  .print-table { font-size: 9px !important; }
+  .print-table th { font-size: 9px !important; padding: 4px 3px !important; }
+  .print-table td { padding: 4px 3px !important; max-height: 60px !important; overflow: hidden !important; }
   .col-num   { width: 3%; }
   .col-track { width: 9%; }
   .col-par   { width: 11%; }
-  .col-std   { width: 9%; }
-  .col-grade { width: 6%; }
-  .col-subj  { width: 14%; }
+  .col-std   { width: 8%; }
+  .col-grade { width: 5%; }
+  .col-subj  { width: 13%; }
   .col-date  { width: 8%; }
   .col-stat  { width: 7%; }
   .col-cdate { width: 8%; }
   .col-meth  { width: 6%; }
-  .col-notes { width: 19%; }
+  .col-notes { width: 22%; }
 }
 
 .print-footer {
@@ -4162,6 +4172,13 @@ async function saveStaff() {
 // =========================================================
 
 // ---------- مساعدات ----------
+/* اقتطاع النص الطويل في الطباعة */
+function rptTrunc(text, maxLen) {
+  if (!text) return '—';
+  const s = String(text);
+  return s.length > maxLen ? s.substring(0, maxLen) + '…' : s;
+}
+
 function rptStatusLabel(s) {
   if (s === 'done')       return 'تم التواصل';
   if (s === 'inprogress') return 'تحت الإجراء';
@@ -4437,18 +4454,18 @@ function _doPrint(reqs, title, meta, type) {
   const rows = reqs.map((r, i) => `
     <tr>
       <td class="col-num">${i+1}</td>
-      <td class="col-track" style="font-family:monospace;font-size:9px">${r.trackingNumber||'—'}</td>
-      <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
-      <td class="col-std">${r.studentName||'—'}</td>
+      <td class="col-track" style="font-family:monospace;font-size:9px">${rptTrunc(r.trackingNumber,20)}</td>
+      <td class="col-par">${rptTrunc(r.parentName,20)}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+      <td class="col-std">${rptTrunc(r.studentName,18)}</td>
       <td class="col-grade">${r.grade||''}/${r.section||''}</td>
-      ${showTeacher ? `<td class="col-meth">${r.staffName||'—'}</td>` : ''}
-      ${showDept    ? `<td class="col-meth">${r.department||'—'}</td>` : ''}
-      <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+      ${showTeacher ? `<td class="col-meth">${rptTrunc(r.staffName,15)}</td>` : ''}
+      ${showDept    ? `<td class="col-meth">${rptTrunc(r.department,15)}</td>` : ''}
+      <td class="col-subj" style="word-break:break-word">${rptTrunc(r.subject,50)}</td>
       <td class="col-date" style="font-size:10px">${rptDateStr(r.createdAt)}</td>
       <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
       <td class="col-cdate" style="font-size:10px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
-      <td class="col-meth">${r.contactMethod||'—'}</td>
-      <td class="col-notes" style="font-size:10px;word-break:break-word">${r.notes||'—'}</td>
+      <td class="col-meth">${rptTrunc(r.contactMethod,12)}</td>
+      <td class="col-notes" style="font-size:10px;word-break:break-word">${rptTrunc(r.notes,80)}</td>
     </tr>
   `).join('');
 
@@ -4685,12 +4702,12 @@ function teacherGradeReportPrint() {
     reqs.forEach((r, i) => {
       rows += `<tr>
         <td class="col-num">${i+1}</td>
-        <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
-        <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
-        <td class="col-std">${r.studentName||'—'}</td>
-        <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+        <td class="col-track" style="font-size:9px;font-family:monospace">${rptTrunc(r.trackingNumber,20)}</td>
+        <td class="col-par">${rptTrunc(r.parentName,20)}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+        <td class="col-std">${rptTrunc(r.studentName,18)}</td>
+        <td class="col-subj" style="word-break:break-word">${rptTrunc(r.subject,50)}</td>
         <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
-        <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
+        <td class="col-notes" style="word-break:break-word;font-size:10px">${rptTrunc(r.notes,80)}</td>
       </tr>`;
     });
   });
@@ -4918,13 +4935,13 @@ function teacherRptPrint() {
       gr.forEach(r => { idx++;
         rows += `<tr>
           <td class="col-num">${idx}</td>
-          <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
-          <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
-          <td class="col-std">${r.studentName||'—'}</td>
-          <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+          <td class="col-track" style="font-size:9px;font-family:monospace">${rptTrunc(r.trackingNumber,20)}</td>
+          <td class="col-par">${rptTrunc(r.parentName,20)}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+          <td class="col-std">${rptTrunc(r.studentName,18)}</td>
+          <td class="col-subj" style="word-break:break-word">${rptTrunc(r.subject,50)}</td>
           <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
           <td class="col-date" style="font-size:10px">${rptDateStr(r.createdAt)}</td>
-          <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
+          <td class="col-notes" style="word-break:break-word;font-size:10px">${rptTrunc(r.notes,80)}</td>
         </tr>`;
       });
     });
@@ -4932,13 +4949,13 @@ function teacherRptPrint() {
     _tRptData.forEach((r,i) => {
       rows += `<tr>
       <td class="col-num">${i+1}</td>
-      <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
-      <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
-      <td class="col-std">${r.studentName||'—'}</td>
+      <td class="col-track" style="font-size:9px;font-family:monospace">${rptTrunc(r.trackingNumber,20)}</td>
+      <td class="col-par">${rptTrunc(r.parentName,20)}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+      <td class="col-std">${rptTrunc(r.studentName,18)}</td>
       ${grouped ? '' : `<td class="col-grade">الصف ${r.grade||''}/${r.section||''}</td>`}
-      <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
-      <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:11px">${rptStatusLabel(r.status)}</td>
-      <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
+      <td class="col-subj" style="word-break:break-word">${rptTrunc(r.subject,50)}</td>
+      <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
+      <td class="col-notes" style="word-break:break-word;font-size:10px">${rptTrunc(r.notes,80)}</td>
     </tr>`;
     });
   }
