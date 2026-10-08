@@ -732,26 +732,50 @@ tbody td { padding: 13px 16px; color: var(--gray-700); vertical-align: middle; }
 .print-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 11px;      /* أصغر قليلاً لاحتواء أكثر */
   margin-bottom: 16px;
+  table-layout: fixed;  /* توزيع الأعمدة بالتساوي */
 }
 
 .print-table th {
   background: #1a56db;
   color: white;
-  padding: 8px 10px;
+  padding: 7px 6px;
   text-align: right;
   font-weight: 600;
   border: 1px solid #1240a6;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .print-table td {
-  padding: 7px 10px;
+  padding: 6px 6px;
   border: 1px solid #e5e7eb;
   vertical-align: top;
+  word-break: break-word;     /* كسر الكلمات الطويلة */
+  overflow-wrap: break-word;  /* ضمان الاحتواء */
+  white-space: normal !important;  /* إلغاء nowrap في الطباعة */
+  max-width: 0;               /* مع table-layout:fixed يجبر التقليص */
 }
 
 .print-table tr:nth-child(even) td { background: #f9fafb; }
+
+/* حجم أعمدة جدول الطباعة */
+@media print {
+  .print-table { font-size: 10px !important; }
+  .print-table th, .print-table td { padding: 5px 4px !important; }
+  .col-num   { width: 3%; }
+  .col-track { width: 9%; }
+  .col-par   { width: 11%; }
+  .col-std   { width: 9%; }
+  .col-grade { width: 6%; }
+  .col-subj  { width: 14%; }
+  .col-date  { width: 8%; }
+  .col-stat  { width: 7%; }
+  .col-cdate { width: 8%; }
+  .col-meth  { width: 6%; }
+  .col-notes { width: 19%; }
+}
 
 .print-footer {
   margin-top: 24px;
@@ -2485,7 +2509,7 @@ async function lookupParentRequests() {
               <div>
                 <div style="font-family:monospace;font-size:13px;color:var(--primary);font-weight:700;margin-bottom:6px">${r.trackingNumber || '—'}</div>
                 <div style="font-size:15px;font-weight:600;margin-bottom:4px">👤 ${r.studentName || '—'}</div>
-                <div style="font-size:13px;color:var(--gray-500)">📚 ${r.subject || 'لم يُحدد'}</div>
+                <div style="font-size:13px;color:var(--gray-500);word-break:break-word;overflow-wrap:break-word;max-width:220px">📚 ${r.subject || 'لم يُحدد'}</div>
                 <div style="font-size:12px;color:var(--gray-400);margin-top:4px">📅 ${dateStr} — الصف ${r.grade||''}/${r.section||''}</div>
               </div>
               <div style="text-align:left">
@@ -2591,12 +2615,12 @@ async function showParentRequestDetails(docId) {
         ${r.subject ? `
         <div style="background:var(--primary-light);padding:14px;border-radius:var(--radius-sm);margin-bottom:12px">
           <div style="font-size:12px;color:var(--primary);font-weight:700;margin-bottom:6px">📌 موضوع الطلب</div>
-          <div style="font-size:14px;line-height:1.7">${r.subject}</div>
+          <div style="font-size:14px;line-height:1.8;word-break:break-word;overflow-wrap:break-word;white-space:pre-wrap">${r.subject}</div>
         </div>` : ''}
         ${r.notes ? `
         <div style="background:var(--gray-50);padding:14px;border-radius:var(--radius-sm);border-right:3px solid var(--success)">
           <div style="font-size:12px;color:var(--success);font-weight:700;margin-bottom:6px">💬 ملاحظات المعلم</div>
-          <div style="font-size:14px;line-height:1.7">${r.notes}</div>
+          <div style="font-size:14px;line-height:1.8;word-break:break-word;overflow-wrap:break-word;white-space:pre-wrap">${r.notes}</div>
         </div>` : ''}
         ${r.status !== 'done' ? `
         <div style="margin-top:16px;text-align:center">
@@ -3014,12 +3038,15 @@ function openRequestModal(id) {
     </div>
   `;
 
-  document.getElementById('save-contact-btn').style.display = isDone ? 'none' : 'inline-flex';
+  // الزر يظهر دائماً سواء كان الطلب منتهياً أم لا
+  const saveBtn = document.getElementById('save-contact-btn');
+  if (saveBtn) saveBtn.style.display = 'inline-flex';
+
   if (isDone) {
     document.getElementById('modal-footer').innerHTML = `
       <button class="btn btn-outline" onclick="closeModal()">إغلاق</button>
       <button class="btn btn-primary" onclick="reopenRequest()">🔄 إعادة فتح الطلب</button>
-      <button class="btn btn-success" onclick="saveContactRecord()">💾 تحديث السجل</button>
+      <button class="btn btn-success" id="save-contact-btn" onclick="saveContactRecord()">💾 تحديث السجل</button>
     `;
   }
 
@@ -4409,19 +4436,19 @@ function _doPrint(reqs, title, meta, type) {
 
   const rows = reqs.map((r, i) => `
     <tr>
-      <td>${i+1}</td>
-      <td style="font-family:monospace;font-size:11px">${r.trackingNumber||'—'}</td>
-      <td>${r.parentName||'—'}<br><span style="font-size:11px;color:#666">${r.phone||''}</span></td>
-      <td>${r.studentName||'—'}</td>
-      <td>${r.grade||''}/${r.section||''}</td>
-      ${showTeacher ? `<td>${r.staffName||'—'}</td>` : ''}
-      ${showDept    ? `<td>${r.department||'—'}</td>` : ''}
-      <td>${r.subject||'—'}</td>
-      <td style="white-space:nowrap;font-size:11px">${rptDateStr(r.createdAt)}</td>
-      <td style="color:${rptStatusColor(r.status)};font-weight:600">${rptStatusLabel(r.status)}</td>
-      <td style="font-size:11px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
-      <td>${r.contactMethod||'—'}</td>
-      <td style="font-size:11px">${r.notes||'—'}</td>
+      <td class="col-num">${i+1}</td>
+      <td class="col-track" style="font-family:monospace;font-size:9px">${r.trackingNumber||'—'}</td>
+      <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+      <td class="col-std">${r.studentName||'—'}</td>
+      <td class="col-grade">${r.grade||''}/${r.section||''}</td>
+      ${showTeacher ? `<td class="col-meth">${r.staffName||'—'}</td>` : ''}
+      ${showDept    ? `<td class="col-meth">${r.department||'—'}</td>` : ''}
+      <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+      <td class="col-date" style="font-size:10px">${rptDateStr(r.createdAt)}</td>
+      <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
+      <td class="col-cdate" style="font-size:10px">${r.contactDate ? rptDateStr(r.contactDate) : '—'}</td>
+      <td class="col-meth">${r.contactMethod||'—'}</td>
+      <td class="col-notes" style="font-size:10px;word-break:break-word">${r.notes||'—'}</td>
     </tr>
   `).join('');
 
@@ -4472,19 +4499,19 @@ function _doPrint(reqs, title, meta, type) {
       <table class="print-table">
         <thead>
           <tr>
-            <th>#</th>
-            <th>رقم الطلب</th>
-            <th>ولي الأمر</th>
-            <th>الطالب</th>
-            <th>الصف</th>
-            ${showTeacher ? '<th>المعلم</th>' : ''}
-            ${showDept    ? '<th>القسم</th>'  : ''}
-            <th>الموضوع</th>
-            <th>التاريخ</th>
-            <th>الحالة</th>
-            <th>تاريخ التواصل</th>
-            <th>الطريقة</th>
-            <th>الملاحظات</th>
+            <th class="col-num">#</th>
+            <th class="col-track">رقم الطلب</th>
+            <th class="col-par">ولي الأمر</th>
+            <th class="col-std">الطالب</th>
+            <th class="col-grade">الصف</th>
+            ${showTeacher ? '<th class="col-meth">المعلم</th>' : ''}
+            ${showDept    ? '<th class="col-meth">القسم</th>'  : ''}
+            <th class="col-subj">الموضوع</th>
+            <th class="col-date">التاريخ</th>
+            <th class="col-stat">الحالة</th>
+            <th class="col-cdate">تاريخ التواصل</th>
+            <th class="col-meth">الطريقة</th>
+            <th class="col-notes">الملاحظات</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -4657,13 +4684,13 @@ function teacherGradeReportPrint() {
     `;
     reqs.forEach((r, i) => {
       rows += `<tr>
-        <td>${i+1}</td>
-        <td>${r.trackingNumber||'—'}</td>
-        <td>${r.parentName||'—'}<br><span style="font-size:11px;color:#666">${r.phone||''}</span></td>
-        <td>${r.studentName||'—'}</td>
-        <td>${r.subject||'—'}</td>
-        <td style="color:${rptStatusColor(r.status)};font-weight:600">${rptStatusLabel(r.status)}</td>
-        <td style="font-size:11px">${r.notes||'—'}</td>
+        <td class="col-num">${i+1}</td>
+        <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
+        <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+        <td class="col-std">${r.studentName||'—'}</td>
+        <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+        <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
+        <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
       </tr>`;
     });
   });
@@ -4694,8 +4721,8 @@ function teacherGradeReportPrint() {
 
       <table class="print-table">
         <thead><tr>
-          <th>#</th><th>رقم الطلب</th><th>ولي الأمر</th><th>الطالب</th>
-          <th>الموضوع</th><th>الحالة</th><th>الملاحظات</th>
+          <th class="col-num">#</th><th class="col-track">رقم الطلب</th><th class="col-par">ولي الأمر</th><th class="col-std">الطالب</th>
+          <th class="col-grade">الصف</th><th class="col-subj">الموضوع</th><th class="col-stat">الحالة</th><th class="col-notes">الملاحظات</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -4814,10 +4841,10 @@ function renderTeacherReportTable(reqs, type) {
   const grouped  = (type === 'all') || (type === 'grade' && !gradeVal);
 
   document.getElementById('t-rpt-thead').innerHTML = `<tr>
-    <th>#</th><th>رقم الطلب</th><th>ولي الأمر / هاتف</th><th>الطالب</th>
-    ${grouped ? '' : '<th>الصف</th>'}
-    <th>الموضوع</th><th>التاريخ</th><th>الحالة</th>
-    <th>تاريخ التواصل</th><th>الطريقة</th><th>الملاحظات</th>
+    <th class="col-num">#</th><th class="col-track">رقم الطلب</th><th class="col-par">ولي الأمر / هاتف</th><th class="col-std">الطالب</th>
+    ${grouped ? '' : '<th class="col-grade">الصف</th>'}
+    <th class="col-subj">الموضوع</th><th class="col-date">التاريخ</th><th class="col-stat">الحالة</th>
+    <th class="col-cdate">تاريخ التواصل</th><th class="col-meth">الطريقة</th><th class="col-notes">الملاحظات</th>
   </tr>`;
 
   let body = '';
@@ -4889,22 +4916,30 @@ function teacherRptPrint() {
       const gd=gr.filter(r=>r.status==='done').length, gp=gr.filter(r=>r.status==='inprogress').length, gn=gr.filter(r=>r.status==='pending').length;
       rows += `<tr style="background:#e8f0fe"><td colspan="8" style="font-weight:700;color:#1a56db;padding:7px 10px">الصف ${gk} — إجمالي: ${gr.length} | تم: ${gd} | إجراء: ${gp} | انتظار: ${gn}</td></tr>`;
       gr.forEach(r => { idx++;
-        rows += `<tr><td>${idx}</td><td style="font-size:10px;font-family:monospace">${r.trackingNumber||'—'}</td>
-        <td>${r.parentName||'—'}<br><span style="font-size:10px;color:#666">${r.phone||''}</span></td>
-        <td>${r.studentName||'—'}</td><td>${r.subject||'—'}</td>
-        <td style="color:${rptStatusColor(r.status)};font-weight:600;font-size:12px">${rptStatusLabel(r.status)}</td>
-        <td style="font-size:11px">${rptDateStr(r.createdAt)}</td><td style="font-size:11px">${r.notes||'—'}</td></tr>`;
+        rows += `<tr>
+          <td class="col-num">${idx}</td>
+          <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
+          <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+          <td class="col-std">${r.studentName||'—'}</td>
+          <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+          <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:10px">${rptStatusLabel(r.status)}</td>
+          <td class="col-date" style="font-size:10px">${rptDateStr(r.createdAt)}</td>
+          <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
+        </tr>`;
       });
     });
   } else {
     _tRptData.forEach((r,i) => {
-      rows += `<tr><td>${i+1}</td><td style="font-size:10px;font-family:monospace">${r.trackingNumber||'—'}</td>
-      <td>${r.parentName||'—'}<br><span style="font-size:10px;color:#666">${r.phone||''}</span></td>
-      <td>${r.studentName||'—'}</td>
-      ${grouped ? '' : `<td>الصف ${r.grade||''}/${r.section||''}</td>`}
-      <td>${r.subject||'—'}</td>
-      <td style="color:${rptStatusColor(r.status)};font-weight:600;font-size:12px">${rptStatusLabel(r.status)}</td>
-      <td style="font-size:11px">${rptDateStr(r.createdAt)}</td><td style="font-size:11px">${r.notes||'—'}</td></tr>`;
+      rows += `<tr>
+      <td class="col-num">${i+1}</td>
+      <td class="col-track" style="font-size:9px;font-family:monospace">${r.trackingNumber||'—'}</td>
+      <td class="col-par">${r.parentName||'—'}<br><span style="font-size:9px;color:#666">${r.phone||''}</span></td>
+      <td class="col-std">${r.studentName||'—'}</td>
+      ${grouped ? '' : `<td class="col-grade">الصف ${r.grade||''}/${r.section||''}</td>`}
+      <td class="col-subj" style="word-break:break-word">${r.subject||'—'}</td>
+      <td class="col-stat" style="color:${rptStatusColor(r.status)};font-weight:600;font-size:11px">${rptStatusLabel(r.status)}</td>
+      <td class="col-notes" style="word-break:break-word;font-size:10px">${r.notes||'—'}</td>
+    </tr>`;
     });
   }
 
@@ -4931,9 +4966,9 @@ function teacherRptPrint() {
       </div>
       <table class="print-table">
         <thead><tr>
-          <th>#</th><th>رقم الطلب</th><th>ولي الأمر</th><th>الطالب</th>
-          ${grouped ? '' : '<th>الصف</th>'}
-          <th>الموضوع</th><th>الحالة</th><th>تاريخ الطلب</th><th>الملاحظات</th>
+          <th class="col-num">#</th><th class="col-track">رقم الطلب</th><th class="col-par">ولي الأمر</th><th class="col-std">الطالب</th>
+          ${grouped ? '' : '<th class="col-grade">الصف</th>'}
+          <th class="col-subj">الموضوع</th><th class="col-stat">الحالة</th><th class="col-date">تاريخ الطلب</th><th class="col-notes">الملاحظات</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
