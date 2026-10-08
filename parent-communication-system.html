@@ -3017,7 +3017,7 @@ async function importFromExcel(input) {
       for (let i = 1; i < rows.length; i++) {
         const row   = rows[i];
         const name  = String(row[1] || '').trim();
-        const email = String(row[3] || '').trim().toLowerCase();
+        const email = String(row[2] || '').trim().toLowerCase();  // C = الإيميل
         const subj  = String(row[4] || '').trim();
         if (!name || !email) continue;
 
@@ -3033,7 +3033,7 @@ async function importFromExcel(input) {
           }
         }
 
-        const pwd = String(row[2] || '').trim();
+        const pwd = String(row[3] || '').trim();  // D = كلمة المرور
         teachers.push({ name, email, password: pwd, subject: subj, grades });
       }
 
@@ -3118,13 +3118,13 @@ async function importAccountsFromExcel(input) {
 
       if (rows.length < 2) { showToast('الملف فارغ', 'error'); return; }
 
-      // 0=الرقم، 1=الاسم، 2=كلمة المرور، 3=الإيميل
+      // 0=الرقم، 1=الاسم، 2=الإيميل، 3=كلمة المرور، 4=المادة
       const accounts = [];
       for (let i = 1; i < rows.length; i++) {
         const row   = rows[i];
         const name  = String(row[1] || '').trim();
-        const pwd   = String(row[2] || '').trim();
-        const email = String(row[3] || '').trim().toLowerCase();
+        const email = String(row[2] || '').trim().toLowerCase();  // C = الإيميل
+        const pwd   = String(row[3] || '').trim();                // D = كلمة المرور
         if (!email || !pwd || !name) continue;
         accounts.push({ email, password: pwd, name });
       }
