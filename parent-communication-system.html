@@ -1500,6 +1500,9 @@ function loadTeacherRequests() {
   query.onSnapshot(snapshot => {
     let reqs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // إضافة إلى allRequests حتى تعمل openRequestModal
+    allRequests = reqs;
+
     // فلتر الحالة
     if (statusFilter) reqs = reqs.filter(r => r.status === statusFilter);
 
@@ -2841,9 +2844,10 @@ async function sendEmailForRequest(id) {
       body:    JSON.stringify(payload),
     });
 
-    // تسجيل وقت الإرسال فقط — الحالة تبقى pending حتى يسجل المعلم التواصل
+    // تغيير الحالة من pending إلى inprogress بعد إرسال الإيميل
     if (db) {
       await db.collection('requests').doc(id).update({
+        status:      'inprogress',
         emailSentAt: new Date(),
         emailSentBy: senderEmail,
         updatedAt:   new Date(),
